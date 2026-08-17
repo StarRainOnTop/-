@@ -1,6 +1,6 @@
-const { EmbedBuilder } = require('discord.js');
+import { EmbedBuilder } from 'discord.js';
 
-module.exports = {
+export default {
     customId: 'say_modal',
     async execute(interaction) {
         // 從 customId 取得目標頻道 ID
