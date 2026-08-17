@@ -14,16 +14,16 @@ module.exports = {
     async execute(interaction) {
         const targetChannel = interaction.options.getChannel('channel');
 
-        // 1. 建立頂部圖片 Embed (Banner)
+        // 1. 頂部 Banner 圖片 Embed
         const bannerEmbed = new EmbedBuilder()
-            .setColor(0x800080) // 紫色邊條 (HEX: #800080)
-            .setImage('https://i.imgur.com/your-rules-image.png'); // 替換成你的 Rules Banner 圖片網址
+            .setColor(0x800080) // 紫色邊條
+            .setImage('https://i.imgur.com/your-rules-image.png'); // 填入你的 Banner 圖片連結，不需要可整段刪除
 
-        // 2. 建立規則內容 Embed
+        // 2. 規則內容 Embed
         const rulesEmbed = new EmbedBuilder()
-            .setColor(0x800080) // 與 Banner 相同的紫色邊條
-            .setDescription(`
-🔮 **閱讀規則 / READ RULES:** 🔮
+            .setColor(0x800080) // 紫色邊條
+            .setDescription(
+`🔮 **閱讀規則 / READ RULES:** 🔮
 
 > 本伺服器遵守 Discord 的服務條款。任何成員違反服務條款的行為都將由管理團隊進行審查並公布處罰。請閱讀條款：https://discordapp.com/terms | https://discordapp.com/guidelines **1-1**
 
@@ -49,11 +49,10 @@ module.exports = {
 > ❯❯ 嚴禁在伺服器任何地方乞討 Robux、Discord Nitro、虛寶或身分組。
 
 ⚡ **規則 8：正確使用頻道 (Correct Channel Usage)**
-> ❯❯ 請在對應的頻道進行相關討論（例如：機器人指令請至指令專用頻道發送）。
-            `);
+> ❯❯ 請在對應的頻道進行相關討論（例如：機器人指令請至指令專用頻道發送）。`
+            );
 
         try {
-            // 一次發送兩個 Embed，Discord 會自動把它們組合在一起
             await targetChannel.send({ embeds: [bannerEmbed, rulesEmbed] });
 
             await interaction.reply({ 
