@@ -3,7 +3,7 @@ const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder } = 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('say')
-        .setDescription('讓機器人向指定頻道發送 Embed 訊息或普通文字')
+        .setDescription('讓機器人發送普通訊息或 Embed 卡片')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
         .addChannelOption(option =>
             option.setName('channel')
@@ -12,19 +12,19 @@ module.exports = {
                 .setRequired(true))
         .addStringOption(option =>
             option.setName('message')
-                .setDescription('輸入你想發送的內容（支援多行文字）')
+                .setDescription('輸入你想發送的內容')
                 .setRequired(true))
         .addStringOption(option =>
             option.setName('title')
-                .setDescription('（可選）Embed 卡片的標題')
+                .setDescription('（可選）Embed 卡片標題，填了就會變成卡片')
                 .setRequired(false))
         .addStringOption(option =>
             option.setName('image')
-                .setDescription('（可選）Embed 圖片網址 (URL)')
+                .setDescription('（可選）Banner 圖片網址')
                 .setRequired(false))
         .addStringOption(option =>
             option.setName('color')
-                .setDescription('（可選）卡片邊條顏色 (例如: #800080 或 Purple)')
+                .setDescription('（可選）邊條顏色，預設紫色 (#800080)')
                 .setRequired(false)),
 
     async execute(interaction) {
@@ -35,8 +35,8 @@ module.exports = {
         const colorInput = interaction.options.getString('color') || '#800080';
 
         try {
-            // 如果填寫了標題或圖片，則以 Embed（卡片）形式發送
-            if (titleText || imageUrl) {
+            // 只要填了 title、image 或 color，就會自動變成漂亮的 Embed 卡片
+            if (titleText || imageUrl || interaction.options.getString('color')) {
                 const embed = new EmbedBuilder()
                     .setDescription(messageText)
                     .setColor(colorInput);
@@ -46,18 +46,17 @@ module.exports = {
 
                 await targetChannel.send({ embeds: [embed] });
             } else {
-                // 如果沒填標題和圖片，就發送普通 Markdown 訊息
                 await targetChannel.send(messageText);
             }
 
             await interaction.reply({ 
-                content: `✅ 訊息已成功發送至 ${targetChannel}！`, 
+                content: `✅ 已成功發送至 ${targetChannel}！`, 
                 ephemeral: true 
             });
         } catch (error) {
             console.error(error);
             await interaction.reply({ 
-                content: '❌ 發送失敗，請檢查機器人權限或圖片網址格式是否正確。', 
+                content: '❌ 發送失敗，請確認機器人權限！', 
                 ephemeral: true 
             });
         }
