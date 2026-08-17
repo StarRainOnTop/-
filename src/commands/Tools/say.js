@@ -14,7 +14,6 @@ export default {
     async execute(interaction) {
         const targetChannel = interaction.options.getChannel('channel');
 
-        // 建立彈出視窗 (Modal)
         const modal = new ModalBuilder()
             .setCustomId(`say_modal_${targetChannel.id}`)
             .setTitle('發送 Embed 卡片訊息');
@@ -27,9 +26,9 @@ export default {
 
         const contentInput = new TextInputBuilder()
             .setCustomId('embed_content')
-            .setLabel('訊息內容 (可直接按 Enter 換行/留空行)')
+            .setLabel('訊息內容 (可直接 Enter 換行)')
             .setStyle(TextInputStyle.Paragraph)
-            .setPlaceholder('在此貼上或輸入規則內容...')
+            .setPlaceholder('在此貼上或輸入內容...')
             .setRequired(true);
 
         modal.addComponents(
