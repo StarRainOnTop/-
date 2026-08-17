@@ -1,4 +1,15 @@
-﻿import 'dotenv/config';
+import http from 'http';
+
+// Render 會自動注入 PORT 環境變數，若無則預設 3000
+const PORT = process.env.PORT || 3000;
+
+http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Bot is running!');
+}).listen(PORT, () => {
+    console.log(`Health check server running on port ${PORT}`);
+});
+import 'dotenv/config';
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import express from 'express';
