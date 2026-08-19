@@ -27,6 +27,6 @@ export default {
 
         if (subcommand === 'dashboard') {
             await economyDashboard.execute(interaction, config, client);
-        }
+        } 
     }
 };
