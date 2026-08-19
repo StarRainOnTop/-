@@ -2,7 +2,7 @@ import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { getColor } from '../../config/bot.js';
 import { logger } from '../../utils/logger.js';
 import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
-import { getEconomyData, removeMoney } from '../../utils/economy.js';
+import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { successEmbed } from '../../utils/embeds.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
@@ -20,8 +20,15 @@ export default {
             // 取得玩家的經濟與狀態資料
             const userData = await getEconomyData(client, guildId, userId);
 
-            // 修正：對應 crime.js 的牢獄判定邏輯 (jailedUntil 是否大於當前時間)[cite: 20]
-            const isJailed = userData && userData.jailedUntil && userData.jailedUntil > now;
+            if (!userData) {
+                return await replyUserError(interaction, {
+                    type: ErrorTypes.VALIDATION,
+                    message: '無法載入您的經濟數據！'
+                });
+            }
+
+            // 檢查是否真的在監獄中
+            const isJailed = userData.jailedUntil && userData.jailedUntil > now;
 
             if (!isJailed) {
                 return await replyUserError(interaction, {
@@ -45,27 +52,26 @@ export default {
             const bailAmount = Math.ceil(totalWealth * 0.05);
 
             // 優先從錢包扣款，如果錢包不夠則從銀行扣款
-            let deductType = 'wallet';
-            if (wallet < bailAmount) {
-                deductType = 'bank';
-                // 如果連銀行總額都不夠付保釋金
+            if (wallet >= bailAmount) {
+                userData.wallet -= bailAmount;
+            } else {
                 if (bank < bailAmount) {
                     return await replyUserError(interaction, {
                         type: ErrorTypes.VALIDATION,
                         message: `你的總資產不足以支付保釋金。保釋金需要 **$${bailAmount.toLocaleString()}**。`
                     });
                 }
+                // 錢包不夠，從銀行扣除差額，或直接扣除總額
+                const remainingNeeded = bailAmount - wallet;
+                userData.wallet = 0;
+                userData.bank -= remainingNeeded;
             }
 
-            // 扣除保釋金
-            await removeMoney(client, guildId, userId, bailAmount, deductType);
-
-            // 修正：解除監獄狀態，清空刑期與標記
+            // 解除監獄狀態：將 jailedUntil 歸零或設為過期
             userData.jailedUntil = null;
             
-            // 儲存更新後的玩家資料
-            const economyKey = `economy:${guildId}:${userId}`;
-            await client.db.set(economyKey, userData);
+            // 統一透過 setEconomyData 儲存更新後的玩家資料
+            await setEconomyData(client, guildId, userId, userData);
 
             // 回覆成功訊息
             const embed = new EmbedBuilder()
