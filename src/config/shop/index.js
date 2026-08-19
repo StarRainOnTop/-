@@ -4,7 +4,7 @@ import { botConfig } from '../bot.js';
 const { currency } = botConfig.economy;
 
 export const shopConfig = {
-    name: 'TitanBot Shop',
+    name: '星雨機器人商店',
     currency: currency.name,
     currencyName: currency.name,
     currencyNamePlural: currency.namePlural || `${currency.name}s`,
@@ -13,43 +13,43 @@ export const shopConfig = {
     categories: [
         {
             id: 'consumables',
-            name: 'Consumables',
-            description: 'One-time use items that provide temporary benefits',
+            name: '消耗品',
+            description: '提供臨時增益效果的一性次使用道具',
             icon: '🍯',
             itemTypes: ['consumable']
         },
         {
             id: 'upgrades',
-            name: 'Upgrades',
-            description: 'Permanent upgrades that enhance your abilities',
+            name: '升級道具',
+            description: '永久提升你能力的強化道具',
             icon: '⚡',
             itemTypes: ['upgrade']
         },
         {
             id: 'tools',
-            name: 'Tools',
-            description: 'Equipment that helps you gather resources more efficiently',
+            name: '工具設備',
+            description: '幫助你更有效率採集資源的裝備',
             icon: '⛏️',
             itemTypes: ['tool']
         },
         {
             id: 'roles',
-            name: 'Roles',
-            description: 'Special roles with unique perks',
+            name: '身分組',
+            description: '具有獨特特權的特殊身分組',
             icon: '🎭',
             itemTypes: ['role']
         }
     ],
     
     transaction: {
-cooldown: 1000,
-maxQuantity: 10,
-confirmTimeout: 30000,
+        cooldown: 1000,
+        maxQuantity: 10,
+        confirmTimeout: 30000,
         
         refundPolicy: {
             enabled: true,
-window: 300000,
-fee: 0.1
+            window: 300000,
+            fee: 0.1
         }
     },
     
@@ -60,19 +60,19 @@ fee: 0.1
         showAffordability: true,
         
         colors: {
-primary: '#5865F2',
-success: '#43B581',
-error: '#F04747',
-warning: '#FAA61A',
-info: '#00B0F4',
+            primary: '#5865F2',
+            success: '#43B581',
+            error: '#F04747',
+            warning: '#FAA61A',
+            info: '#00B0F4',
             
             rarity: {
-common: '#99AAB5',
-uncommon: '#2ECC71',
-rare: '#3498DB',
-epic: '#9B59B6',
-legendary: '#F1C40F',
-mythic: '#E74C3C'
+                common: '#99AAB5',
+                uncommon: '#2ECC71',
+                rare: '#3498DB',
+                epic: '#9B59B6',
+                legendary: '#F1C40F',
+                mythic: '#E74C3C'
             }
         },
         
@@ -95,18 +95,18 @@ mythic: '#E74C3C'
     events: {
         restock: {
             enabled: true,
-interval: 86400000,
-announcementChannel: null,
-            message: '🛒 **Shop Restocked!** New items are now available!'
+            interval: 86400000,
+            announcementChannel: null,
+            message: '🛒 **商店已補貨！** 全新道具現已上架！'
         },
         
         sales: {
             enabled: true,
             schedule: [
                 {
-day: 0,
-discount: 0.2,
-                    message: '🔥 **Weekend Sale!** 20% off all items!'
+                    day: 0,
+                    discount: 0.2,
+                    message: '🔥 **週末特賣！** 所有道具享 8 折優惠！'
                 },
             ]
         }
@@ -141,7 +141,7 @@ export function getCurrentPrice(itemId, { quantity = 1, userData = null } = {}) 
         }
         
         if (quantity >= 10) {
-discount += 0.1;
+            discount += 0.1;
         }
     }
     
@@ -155,8 +155,8 @@ export function getCategoryForItem(itemType) {
         cat.itemTypes.includes(itemType)
     ) || {
         id: 'other',
-        name: 'Other',
-        description: 'Miscellaneous items',
+        name: '其他',
+        description: '其他雜項道具',
         icon: '📦'
     };
 }
