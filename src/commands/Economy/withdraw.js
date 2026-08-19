@@ -7,11 +7,11 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('withdraw')
-        .setDescription('Withdraw money from your bank to your wallet')
+        .setDescription('從你的銀行提款到錢包')
         .addIntegerOption(option =>
             option
                 .setName('amount')
-                .setDescription('Amount to withdraw')
+                .setDescription('提款金額')
                 .setRequired(true)
                 .setMinValue(1)
         ),
@@ -29,7 +29,7 @@ export default {
                 throw createError(
                     "Failed to load economy data",
                     ErrorTypes.DATABASE,
-                    "Failed to load your economy data. Please try again later.",
+                    "無法載入您的經濟數據，請稍後再試。",
                     { userId, guildId }
                 );
             }
@@ -40,7 +40,7 @@ export default {
                 throw createError(
                     "Invalid withdrawal amount",
                     ErrorTypes.VALIDATION,
-                    "You must withdraw a positive amount.",
+                    "你必須提領大於零的金額。",
                     { amount: withdrawAmount, userId }
                 );
             }
@@ -53,7 +53,7 @@ export default {
                 throw createError(
                     "Empty bank account",
                     ErrorTypes.VALIDATION,
-                    "Your bank account is empty.",
+                    "你的銀行帳戶是空的。",
                     { userId, bankBalance: userData.bank }
                 );
             }
@@ -64,17 +64,17 @@ export default {
             await setEconomyData(client, guildId, userId, userData);
 
             const embed = successEmbed(
-                'Withdrawal Successful',
-                `You successfully withdrew **$${withdrawAmount.toLocaleString()}** from your bank.`
+                '提款成功',
+                `你已成功從銀行提領了 **$${withdrawAmount.toLocaleString()}**。`
             )
                 .addFields(
                     {
-                        name: "New Cash Balance",
+                        name: "新現金餘額",
                         value: `$${userData.wallet.toLocaleString()}`,
                         inline: true,
                     },
                     {
-                        name: "New Bank Balance",
+                        name: "新銀行餘額",
                         value: `$${userData.bank.toLocaleString()}`,
                         inline: true,
                     },
