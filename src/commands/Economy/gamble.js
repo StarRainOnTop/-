@@ -13,11 +13,11 @@ const GAMBLE_COOLDOWN = 5 * 60 * 1000;
 export default {
     data: new SlashCommandBuilder()
         .setName('gamble')
-        .setDescription('Gamble your money for a chance to win more')
+        .setDescription('賭博你的金錢以贏取更多現金')
         .addIntegerOption(option =>
             option
                 .setName('amount')
-                .setDescription('Amount of cash to gamble')
+                .setDescription('要賭博的現金金額')
                 .setRequired(true)
                 .setMinValue(1)
         ),
@@ -44,7 +44,7 @@ export default {
                 throw createError(
                     "Gamble cooldown active",
                     ErrorTypes.RATE_LIMIT,
-                    `You need to cool down before gambling again. Wait **${minutes}m ${seconds}s**.`,
+                    `你需要冷靜一下才能再次賭博。請等待 **${minutes}分 ${seconds}秒**。`,
                     { remaining, cooldownType: 'gamble' }
                 );
             }
@@ -53,7 +53,7 @@ export default {
                 throw createError(
                     "Insufficient cash for gamble",
                     ErrorTypes.VALIDATION,
-                    `You only have $${userData.wallet.toLocaleString()} cash, but you are trying to bet $${betAmount.toLocaleString()}.`,
+                    `你只有 $${userData.wallet.toLocaleString()} 現金，但你正試圖下注 $${betAmount.toLocaleString()}。`,
                     { required: betAmount, current: userData.wallet }
                 );
             }
@@ -66,14 +66,14 @@ export default {
             if (cloverCount > 0) {
                 winChance += CLOVER_WIN_BONUS;
                 userData.inventory["lucky_clover"] -= 1;
-                cloverMessage = `\n🍀 **Lucky Clover Consumed:** Your win chance was boosted!`;
+                cloverMessage = `\n🍀 **已消耗幸運草：** 你的勝率提升了！`;
                 usedClover = true;
             }
             
             else if (charmCount > 0) {
                 winChance += CHARM_WIN_BONUS;
                 userData.inventory["lucky_charm"] -= 1;
-                cloverMessage = `\n🍀 **Lucky Charm Used (${charmCount - 1} uses remaining):** Your win chance was boosted!`;
+                cloverMessage = `\n🍀 **已使用幸運護符（剩餘 ${charmCount - 1} 次）：** 你的勝率提升了！`;
                 usedCharm = true;
             }
 
@@ -83,46 +83,45 @@ export default {
 
             if (win) {
                 const amountWon = Math.floor(betAmount * PAYOUT_MULTIPLIER);
-                // Net change: the bet is replaced by the payout (bet was at stake, not pre-deducted)
                 cashChange = amountWon - betAmount;
 
                 resultEmbed = successEmbed(
-                    "🎉 You Won!",
-                    `You successfully gambled and turned your **$${betAmount.toLocaleString()}** bet into **$${amountWon.toLocaleString()}**!${cloverMessage}`,
+                    "🎉 你贏了！",
+                    `你成功賭博並將 **$${betAmount.toLocaleString()}** 的下注變成了 **$${amountWon.toLocaleString()}**！${cloverMessage}`,
                 );
             } else {
-cashChange = -betAmount;
+                cashChange = -betAmount;
 
                 resultEmbed = warningEmbed(
-                    "💔 You Lost...",
-                    `The dice rolled against you. You lost your **$${betAmount.toLocaleString()}** bet.`,
+                    "💔 你輸了...",
+                    `骰子對你不利。你輸掉了 **$${betAmount.toLocaleString()}** 的下注。`,
                 );
             }
 
             userData.wallet = (userData.wallet || 0) + cashChange;
-userData.lastGamble = now;
+            userData.lastGamble = now;
 
             await setEconomyData(client, guildId, userId, userData);
 
             const newCash = userData.wallet;
 
             resultEmbed.addFields({
-                name: "New Cash Balance",
+                name: "新錢包現金餘額",
                 value: `$${newCash.toLocaleString()}`,
                 inline: true,
             });
 
             if (usedClover) {
                 resultEmbed.setFooter({
-                    text: `You have ${userData.inventory["lucky_clover"]} Lucky Clovers left. Win chance was ${Math.round(winChance * 100)}%.`,
+                    text: `你還剩 ${userData.inventory["lucky_clover"]} 個幸運草。當前勝率為 ${Math.round(winChance * 100)}%。`,
                 });
             } else if (usedCharm) {
                 resultEmbed.setFooter({
-                    text: `You have ${userData.inventory["lucky_charm"]} Lucky Charm uses left. Win chance was ${Math.round(winChance * 100)}%.`,
+                    text: `你還剩 ${userData.inventory["lucky_charm"]} 次幸運護符使用機會。當前勝率為 ${Math.round(winChance * 100)}%。`,
                 });
             } else {
                 resultEmbed.setFooter({
-                    text: `Next gamble available in 5 minutes. Base win chance: ${Math.round(BASE_WIN_CHANCE * 100)}%.`,
+                    text: `可在 5 分鐘後再次賭博。基礎勝率：${Math.round(BASE_WIN_CHANCE * 100)}%。`,
                 });
             }
 
