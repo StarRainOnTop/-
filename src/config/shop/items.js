@@ -1,12 +1,12 @@
 export const shopItems = [
     {
         id: 'extra_work',
-        name: 'Extra Work Shift',
+        name: '額外工作時數',
         price: 5000,
-        description: 'Allows 1 extra use of the `/work` command.',
+        description: '允許額外使用 1 次 `/work` 指令。',
         type: 'consumable',
         maxQuantity: 5,
-cooldown: 86400000,
+        cooldown: 86400000,
         effect: {
             type: 'command_boost',
             command: 'work',
@@ -15,9 +15,9 @@ cooldown: 86400000,
     },
     {
         id: 'bank_upgrade_1',
-        name: 'Bank Upgrade I',
+        name: '銀行升級 I',
         price: 15000,
-        description: 'Increases bank capacity and allows more funds to be deposited.',
+        description: '增加銀行容量，允許存入更多資金。',
         type: 'upgrade',
         maxLevel: 5,
         effect: {
@@ -27,9 +27,9 @@ cooldown: 86400000,
     },
     {
         id: 'diamond_pickaxe',
-        name: 'Diamond Pickaxe',
+        name: '鑽石鎬',
         price: 50000,
-        description: 'Increases yield from `/mine`',
+        description: '增加從 `/mine` 獲得的產量。',
         type: 'tool',
         durability: 100,
         effect: {
@@ -39,11 +39,11 @@ cooldown: 86400000,
     },
     {
         id: 'premium_role',
-        name: 'Premium Server Role',
+        name: '高級伺服器身分組',
         price: 15000,
-        description: 'A special role granting a fancy color and a 10% daily bonus.',
+        description: '授予精美顏色與 10% 每日獎勵的特殊身分組。',
         type: 'role',
-roleId: null,
+        roleId: null,
         effect: {
             type: 'daily_bonus',
             multiplier: 1.1
@@ -51,9 +51,9 @@ roleId: null,
     },
     {
         id: 'lucky_clover',
-        name: 'Lucky Clover',
+        name: '幸運草',
         price: 10000,
-        description: 'Increases the chance of winning a higher payout on `/gamble` once.',
+        description: '單次增加在 `/gamble` 中贏得更高彩金的機率。',
         type: 'consumable',
         maxQuantity: 10,
         effect: {
@@ -64,9 +64,9 @@ roleId: null,
     },
     {
         id: 'fishing_rod',
-        name: '🎣 Fishing Rod',
+        name: '🎣 釣魚竿',
         price: 5000,
-        description: 'Used for fishing commands',
+        description: '用於釣魚指令的裝備。',
         type: 'tool',
         durability: 100,
         effect: {
@@ -76,9 +76,9 @@ roleId: null,
     },
     {
         id: 'pickaxe',
-        name: '⛏️ Pickaxe',
+        name: '⛏️ 鎬',
         price: 7500,
-        description: 'Used for mining commands',
+        description: '用於挖礦指令的裝備。',
         type: 'tool',
         durability: 100,
         effect: {
@@ -88,9 +88,9 @@ roleId: null,
     },
     {
         id: 'laptop',
-        name: '💻 Laptop',
+        name: '💻 筆記型電腦',
         price: 15000,
-        description: 'Increases work earnings',
+        description: '增加工作收益。',
         type: 'tool',
         durability: 200,
         effect: {
@@ -100,9 +100,9 @@ roleId: null,
     },
     {
         id: 'lucky_charm',
-        name: '🍀 Lucky Charm',
+        name: '🍀 幸運護符',
         price: 10000,
-        description: 'Increases luck for gambling. Has 3 uses before being consumed.',
+        description: '增加賭博的幸運值。消耗前可使用 3 次。',
         type: 'consumable',
         maxQuantity: 10,
         effect: {
@@ -113,9 +113,9 @@ roleId: null,
     },
     {
         id: 'bank_note',
-        name: '📜 Bank Note',
+        name: '📜 銀行支票',
         price: 25000,
-        description: 'Increases bank capacity by 10,000. Can be purchased multiple times.',
+        description: '增加 10,000 點銀行容量。可以重複購買。',
         type: 'tool',
         durability: null,
         effect: {
@@ -125,9 +125,9 @@ roleId: null,
     },
     {
         id: 'personal_safe',
-        name: '🔒 Personal Safe',
+        name: '🔒 個人保險箱',
         price: 30000,
-        description: 'Protects your money from theft. Prevents others from robbing you.',
+        description: '保護你的金錢免遭竊取。防止其他人搶劫你。',
         type: 'tool',
         durability: null,
         effect: {
@@ -153,7 +153,7 @@ export function getItemPrice(itemId) {
 export function validatePurchase(itemId, userData) {
     const item = getItemById(itemId);
     if (!item) {
-        return { valid: false, reason: 'Item not found' };
+        return { valid: false, reason: '找不到該道具' };
     }
 
     const inventory = userData.inventory || {};
@@ -164,28 +164,26 @@ export function validatePurchase(itemId, userData) {
         if (currentQuantity >= item.maxQuantity) {
             return { 
                 valid: false, 
-                reason: `You can only have a maximum of ${item.maxQuantity} ${item.name}s` 
+                reason: `你最多只能擁有 ${item.maxQuantity} 個${item.name}` 
             };
         }
     }
 
     if (item.type === 'upgrade' && item.maxLevel) {
-        
         if (upgrades[itemId]) {
             return { 
                 valid: false, 
-                reason: `You've already purchased ${item.name}` 
+                reason: `你已經購買過 ${item.name} 了` 
             };
         }
     }
 
     if (item.type === 'tool') {
-        
         const currentQuantity = inventory[itemId] || 0;
         if (itemId !== 'bank_note' && currentQuantity > 0) {
             return { 
                 valid: false, 
-                reason: `You already have a ${item.name}` 
+                reason: `你已經有一個 ${item.name} 了` 
             };
         }
     }
@@ -194,7 +192,7 @@ export function validatePurchase(itemId, userData) {
         if (userData.roles?.includes(item.roleId)) {
             return { 
                 valid: false, 
-                reason: `You already have the ${item.name} role` 
+                reason: `你已經擁有 ${item.name} 身分組了` 
             };
         }
     }
