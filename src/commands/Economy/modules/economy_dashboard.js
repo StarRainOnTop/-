@@ -1,14 +1,10 @@
-[source: 3]import {
+import {
     ActionRowBuilder,
     StringSelectMenuBuilder,
     StringSelectMenuOptionBuilder,
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle,
-    UserSelectMenuBuilder,
-    LabelBuilder,
-    ButtonBuilder,
-    ButtonStyle,
     MessageFlags,
     ComponentType,
     EmbedBuilder,
@@ -229,17 +225,14 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
         .setCustomId(`economy_add_currency_${guild.id}`)
         .setTitle('增加貨幣');
 
-    const userSelect = new UserSelectMenuBuilder()
+    const userInput = new TextInputBuilder()
         .setCustomId('target_user')
-        .setPlaceholder('選擇一位使用者...')
-        .setMinValues(1)
-        .setMaxValues(1)
+        .setLabel('目標使用者 (請輸入 User ID)')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('例如：123456789012345678')
+        .setMinLength(17)
+        .setMaxLength(20)
         .setRequired(true);
-
-    const userLabel = new LabelBuilder()
-        .setLabel('目標使用者')
-        .setDescription('要增加貨幣的使用者')
-        .setUserSelectMenuComponent(userSelect);
 
     const amountInput = new TextInputBuilder()
         .setCustomId('amount')
@@ -259,8 +252,8 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
         .setMaxLength(5)
         .setRequired(true);
 
-    modal.addLabelComponents(userLabel);
     modal.addComponents(
+        new ActionRowBuilder().addComponents(userInput),
         new ActionRowBuilder().addComponents(amountInput),
         new ActionRowBuilder().addComponents(typeInput),
     );
@@ -276,7 +269,8 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
 
     if (!submitted) return;
 
-    const userId = submitted.fields.getField('target_user').values[0];
+    const rawUserId = submitted.fields.getTextInputValue('target_user').trim();
+    const userId = rawUserId.replace(/<@!?(\d+)>/, '$1'); // 支援直接複製標記或 ID
     const amount = parseInt(submitted.fields.getTextInputValue('amount').trim(), 10);
     const type = submitted.fields.getTextInputValue('type').trim().toLowerCase();
 
@@ -292,7 +286,7 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
 
     const member = await guild.members.fetch(userId).catch(() => null);
     if (!member) {
-        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: '指定的使用者不在此伺服器中。' });
+        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: '找不到指定的使用者，請確認 User ID 是否正確且在伺服器內。' });
         return;
     }
 
@@ -326,17 +320,14 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
         .setCustomId(`economy_remove_currency_${guild.id}`)
         .setTitle('扣除貨幣');
 
-    const userSelect = new UserSelectMenuBuilder()
+    const userInput = new TextInputBuilder()
         .setCustomId('target_user')
-        .setPlaceholder('選擇一位使用者...')
-        .setMinValues(1)
-        .setMaxValues(1)
+        .setLabel('目標使用者 (請輸入 User ID)')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('例如：123456789012345678')
+        .setMinLength(17)
+        .setMaxLength(20)
         .setRequired(true);
-
-    const userLabel = new LabelBuilder()
-        .setLabel('目標使用者')
-        .setDescription('要扣除貨幣的使用者')
-        .setUserSelectMenuComponent(userSelect);
 
     const amountInput = new TextInputBuilder()
         .setCustomId('amount')
@@ -356,8 +347,8 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
         .setMaxLength(5)
         .setRequired(true);
 
-    modal.addLabelComponents(userLabel);
     modal.addComponents(
+        new ActionRowBuilder().addComponents(userInput),
         new ActionRowBuilder().addComponents(amountInput),
         new ActionRowBuilder().addComponents(typeInput),
     );
@@ -373,7 +364,8 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
 
     if (!submitted) return;
 
-    const userId = submitted.fields.getField('target_user').values[0];
+    const rawUserId = submitted.fields.getTextInputValue('target_user').trim();
+    const userId = rawUserId.replace(/<@!?(\d+)>/, '$1');
     const amount = parseInt(submitted.fields.getTextInputValue('amount').trim(), 10);
     const type = submitted.fields.getTextInputValue('type').trim().toLowerCase();
 
@@ -389,7 +381,7 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
 
     const member = await guild.members.fetch(userId).catch(() => null);
     if (!member) {
-        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: '指定的使用者不在此伺服器中。' });
+        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: '找不到指定的使用者，請確認 User ID 是否正確且在伺服器內。' });
         return;
     }
 
@@ -503,7 +495,7 @@ async function handleChangeName(selectInteraction, rootInteraction, guild) {
     const newName = submitted.fields.getTextInputValue('currency_name').trim();
 
     if (newName.length === 0 || newName.length > 20) {
-        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: '貨幣名稱長度必須介於 1 到 20 個字元之間。' });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: '貨幣名稱長度必須介於 1 到 20 個字元之間。` });
         return;
     }
 
