@@ -15,12 +15,15 @@ export default {
         try {
             const guildId = interaction.guildId;
             const userId = interaction.user.id;
+            const now = Date.now();
 
             // 取得玩家的經濟與狀態資料
             const userData = await getEconomyData(client, guildId, userId);
 
-            // 檢查玩家是否真的在監獄中（假設欄位為 inJail 或 jail）
-            if (!userData || !userData.inJail) {
+            // 修正：對應 crime.js 的牢獄判定邏輯 (jailedUntil 是否大於當前時間)[cite: 20]
+            const isJailed = userData && userData.jailedUntil && userData.jailedUntil > now;
+
+            if (!isJailed) {
                 return await replyUserError(interaction, {
                     type: ErrorTypes.VALIDATION,
                     message: '你根本沒有被關在監獄裡！'
@@ -57,9 +60,8 @@ export default {
             // 扣除保釋金
             await removeMoney(client, guildId, userId, bailAmount, deductType);
 
-            // 解除監獄狀態
-            userData.inJail = false;
-            userData.jailUntil = null; // 如果有設定刑期時間的話
+            // 修正：解除監獄狀態，清空刑期與標記
+            userData.jailedUntil = null;
             
             // 儲存更新後的玩家資料
             const economyKey = `economy:${guildId}:${userId}`;
