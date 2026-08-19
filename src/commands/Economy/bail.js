@@ -1,10 +1,10 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { getColor } from '../../../config/bot.js';
-import { logger } from '../../../utils/logger.js';
-import { replyUserError, ErrorTypes } from '../../../utils/errorHandler.js';
-import { getEconomyData, removeMoney } from '../../../utils/economy.js';
-import { successEmbed } from '../../../utils/embeds.js';
-import { InteractionHelper } from '../../../utils/interactionHelper.js';
+import { getColor } from '../../config/bot.js';
+import { logger } from '../../utils/logger.js';
+import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+import { getEconomyData, removeMoney } from '../../utils/economy.js';
+import { successEmbed } from '../../utils/embeds.js';
+import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 export default {
     data: new SlashCommandBuilder()
