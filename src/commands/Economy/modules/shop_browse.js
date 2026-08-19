@@ -16,17 +16,17 @@ export default {
                 const startIndex = (page - 1) * ITEMS_PER_PAGE;
                 const pageItems = shopItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
                 const embed = new EmbedBuilder()
-                    .setTitle('Store')
+                    .setTitle('🛒 商店')
                     .setColor(getColor('primary'))
-                    .setDescription('Use `/buy item_id:<id> quantity:<amount>` to purchase an item.');
+                    .setDescription('使用 `/buy item_id:<道具代號> quantity:<數量>` 來購買道具。');
                 pageItems.forEach(item => {
                     embed.addFields({
                         name: `${item.name} (${item.id})`,
-                        value: `**Type:** ${item.type}\n **Price:** $${item.price.toLocaleString()}\n${item.description}`,
+                        value: `**類型：** ${item.type}\n **價格：** $${item.price.toLocaleString()}\n${item.description}`,
                         inline: false,
                     });
                 });
-                embed.setFooter({ text: `Page ${page}/${totalPages}` });
+                embed.setFooter({ text: `第 ${page}/${totalPages} 頁` });
                 return embed;
             };
 
@@ -36,12 +36,12 @@ export default {
                     new ActionRowBuilder().addComponents(
                         new ButtonBuilder()
                             .setCustomId('shop_prev')
-                            .setLabel('⬅️ Previous')
+                            .setLabel('⬅️ 上一頁')
                             .setStyle(ButtonStyle.Secondary)
                             .setDisabled(page === 1),
                         new ButtonBuilder()
                             .setCustomId('shop_next')
-                            .setLabel('Next ➡️')
+                            .setLabel('下一頁 ➡️')
                             .setStyle(ButtonStyle.Secondary)
                             .setDisabled(page === totalPages),
                     ),
@@ -61,7 +61,7 @@ export default {
 
             collector.on('collect', async (buttonInteraction) => {
                 if (buttonInteraction.user.id !== interaction.user.id) {
-                    await buttonInteraction.reply({ content: '❌ You cannot use these buttons. Run `/shop` to get your own shop view.', flags: 64 });
+                    await buttonInteraction.reply({ content: '❌ 你無法使用這些按鈕。請自行輸入 `/shop` 來檢視商店。', flags: 64 });
                     return;
                 }
                 const { customId } = buttonInteraction;
