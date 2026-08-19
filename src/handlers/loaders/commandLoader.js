@@ -39,9 +39,7 @@ async function getAllFiles(directory, fileList = []) {
         const filePath = path.join(directory, file.name);
         
         if (file.isDirectory()) {
-            if (file.name === 'modules') {
-                continue;
-            }
+            // 已移除原本會略過 modules 資料夾的判斷
             await getAllFiles(filePath, fileList);
         } else if (file.name.endsWith('.js')) {
             fileList.push(filePath);
