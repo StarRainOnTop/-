@@ -7,11 +7,11 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('deposit')
-        .setDescription('Deposit money from your wallet into your bank')
+        .setDescription('將錢包中的現金存入銀行')
         .addStringOption(option =>
             option
                 .setName('amount')
-                .setDescription('Amount to deposit (number or "all")')
+                .setDescription('要存入的金額（數字或 "all"）')
                 .setRequired(true)
         ),
 
@@ -29,7 +29,7 @@ export default {
                 throw createError(
                     "Failed to load economy data",
                     ErrorTypes.DATABASE,
-                    "Failed to load your economy data. Please try again later.",
+                    "無法載入您的經濟數據，請稍後再試。",
                     { userId, guildId }
                 );
             }
@@ -46,7 +46,7 @@ export default {
                     throw createError(
                         "Invalid deposit amount",
                         ErrorTypes.VALIDATION,
-                        `Please enter a valid number or 'all'. You entered: \`${amountInput}\``,
+                        `請輸入有效的數字或 'all'。您輸入的是：\`${amountInput}\``,
                         { amountInput, userId }
                     );
                 }
@@ -56,7 +56,7 @@ export default {
                 throw createError(
                     "Zero deposit amount",
                     ErrorTypes.VALIDATION,
-                    "You have no cash to deposit.",
+                    "您的錢包裡沒有現金可供存款。",
                     { userId, walletBalance: userData.wallet }
                 );
             }
@@ -67,7 +67,7 @@ export default {
                     embeds: [
                         buildUserErrorEmbed(
                             'validation',
-                            `You tried to deposit more than you have. Depositing your remaining cash: **$${depositAmount.toLocaleString()}**`
+                            `您嘗試存入超過您擁有的金額。系統已自動為您存入剩餘的現金：**$${depositAmount.toLocaleString()}**`
                         )
                     ],
                     flags: MessageFlags.Ephemeral,
@@ -80,7 +80,7 @@ export default {
                 throw createError(
                     "Bank is full",
                     ErrorTypes.VALIDATION,
-                    `Your bank is currently full (Max Capacity: $${maxBank.toLocaleString()}). Purchase a **Bank Upgrade** to increase your limit.`,
+                    `您的銀行目前已滿（最大容量：$${maxBank.toLocaleString()}）。請購買**銀行擴充升級 (Bank Upgrade)** 來增加上限。`,
                     { maxBank, currentBank: userData.bank, userId }
                 );
             }
@@ -94,7 +94,7 @@ export default {
                         embeds: [
                             buildUserErrorEmbed(
                                 'validation',
-                                `You only had space for **$${depositAmount.toLocaleString()}** in your bank account (Max: $${maxBank.toLocaleString()}). The rest remains in your cash.`
+                                `您的銀行帳戶只剩下 **$${depositAmount.toLocaleString()}** 的空間（上限：$${maxBank.toLocaleString()}）。其餘的現金仍保留在您的錢包中。`
                             )
                         ],
                         flags: MessageFlags.Ephemeral,
@@ -106,7 +106,7 @@ export default {
                 throw createError(
                     "No space or cash for deposit",
                     ErrorTypes.VALIDATION,
-                    "The amount you tried to deposit was either 0 or exceeded your bank capacity after checking your cash balance.",
+                    "您嘗試存入的金額為 0，或在檢查現金餘額後超出了銀行的容量限制。",
                     { depositAmount, availableSpace, walletBalance: userData.wallet }
                 );
             }
@@ -117,17 +117,17 @@ export default {
             await setEconomyData(client, guildId, userId, userData);
 
             const embed = successEmbed(
-                'Deposit Successful',
-                `You successfully deposited **$${depositAmount.toLocaleString()}** into your bank.`
+                '存款成功',
+                `您已成功將 **$${depositAmount.toLocaleString()}** 存入您的銀行。`
             )
                 .addFields(
                     {
-                        name: "New Cash Balance",
+                        name: "新錢包現金餘額",
                         value: `$${userData.wallet.toLocaleString()}`,
                         inline: true,
                     },
                     {
-                        name: "New Bank Balance",
+                        name: "新銀行存款餘額",
                         value: `$${userData.bank.toLocaleString()} / $${maxBank.toLocaleString()}`,
                         inline: true,
                     },
