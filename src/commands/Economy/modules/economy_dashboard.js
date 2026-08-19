@@ -5,7 +5,6 @@ import {
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle,
-    UserSelectMenuBuilder,
     MessageFlags,
     ComponentType,
     EmbedBuilder,
@@ -240,11 +239,13 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
         .setCustomId(`economy_add_currency_${guild.id}`)
         .setTitle('增加貨幣');
 
-    const userSelect = new UserSelectMenuBuilder()
+    const userInput = new TextInputBuilder()
         .setCustomId('target_user')
-        .setPlaceholder('選擇一位使用者 ID 或標註')
-        .setMinValues(1)
-        .setMaxValues(1)
+        .setLabel('目標使用者 ID')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('請輸入對方的 Discord User ID')
+        .setMinLength(15)
+        .setMaxLength(25)
         .setRequired(true);
 
     const amountInput = new TextInputBuilder()
@@ -266,7 +267,7 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
         .setRequired(true);
 
     modal.addComponents(
-        new ActionRowBuilder().addComponents(userSelect),
+        new ActionRowBuilder().addComponents(userInput),
         new ActionRowBuilder().addComponents(amountInput),
         new ActionRowBuilder().addComponents(typeInput),
     );
@@ -282,7 +283,7 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
 
     if (!submitted) return;
 
-    const userId = submitted.fields.getValue('target_user') || submitted.fields.getTextInputValue('target_user');
+    const userId = submitted.fields.getTextInputValue('target_user').trim();
     const amount = parseInt(submitted.fields.getTextInputValue('amount').trim(), 10);
     const type = submitted.fields.getTextInputValue('type').trim().toLowerCase();
 
@@ -298,7 +299,7 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
 
     const member = await guild.members.fetch(userId).catch(() => null);
     if (!member) {
-        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: '指定的使用者不在此伺服器中或 ID 無效。' });
+        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: '找不到此使用者 ID，請確保對方在此伺服器中。' });
         return;
     }
 
@@ -331,11 +332,13 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
         .setCustomId(`economy_remove_currency_${guild.id}`)
         .setTitle('扣除貨幣');
 
-    const userSelect = new UserSelectMenuBuilder()
+    const userInput = new TextInputBuilder()
         .setCustomId('target_user')
-        .setPlaceholder('選擇一位使用者 ID 或標註')
-        .setMinValues(1)
-        .setMaxValues(1)
+        .setLabel('目標使用者 ID')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('請輸入對方的 Discord User ID')
+        .setMinLength(15)
+        .setMaxLength(25)
         .setRequired(true);
 
     const amountInput = new TextInputBuilder()
@@ -357,7 +360,7 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
         .setRequired(true);
 
     modal.addComponents(
-        new ActionRowBuilder().addComponents(userSelect),
+        new ActionRowBuilder().addComponents(userInput),
         new ActionRowBuilder().addComponents(amountInput),
         new ActionRowBuilder().addComponents(typeInput),
     );
@@ -373,7 +376,7 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
 
     if (!submitted) return;
 
-    const userId = submitted.fields.getValue('target_user') || submitted.fields.getTextInputValue('target_user');
+    const userId = submitted.fields.getTextInputValue('target_user').trim();
     const amount = parseInt(submitted.fields.getTextInputValue('amount').trim(), 10);
     const type = submitted.fields.getTextInputValue('type').trim().toLowerCase();
 
@@ -389,7 +392,7 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
 
     const member = await guild.members.fetch(userId).catch(() => null);
     if (!member) {
-        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: '指定的使用者不在此伺服器中或 ID 無效。' });
+        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: '找不到此使用者 ID，請確保對方在此伺服器中。' });
         return;
     }
 
