@@ -4,8 +4,8 @@ import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
-const CRIME_COOLDOWN = 60 * 60 * 1000;
-const JAIL_TIME = 2 * 60 * 60 * 1000;
+const CRIME_COOLDOWN = 30 * 60 * 1000;
+const JAIL_TIME = 1 * 60 * 60 * 1000;
 const FINE_RATE = 0.2;
 
 const CRIME_TYPES = [
@@ -19,18 +19,18 @@ const CRIME_TYPES = [
 export default {
     data: new SlashCommandBuilder()
         .setName('crime')
-        .setDescription('Commit a crime to earn money (risky)')
+        .setDescription('犯罪來賺取金錢（有風險）')
         .addStringOption(option =>
             option
                 .setName('type')
-                .setDescription('Type of crime to commit')
+                .setDescription('要犯案的類型')
                 .setRequired(true)
                 .addChoices(
-                    { name: 'Pickpocketing', value: 'pickpocketing' },
-                    { name: 'Burglary', value: 'burglary' },
-                    { name: 'Bank Heist', value: 'bank-heist' },
-                    { name: 'Art Theft', value: 'art-theft' },
-                    { name: 'Cybercrime', value: 'cybercrime' },
+                    { name: '扒竊 (Pickpocketing)', value: 'pickpocketing' },
+                    { name: '闖空門 (Burglary)', value: 'burglary' },
+                    { name: '銀行搶劫 (Bank Heist)', value: 'bank-heist' },
+                    { name: '藝術品偷竊 (Art Theft)', value: 'art-theft' },
+                    { name: '網路犯罪 (Cybercrime)', value: 'cybercrime' },
                 )
         ),
 
@@ -50,7 +50,7 @@ export default {
                 throw createError(
                     "User is in jail",
                     ErrorTypes.RATE_LIMIT,
-                    `You're in jail for ${timeLeft} more minutes!`,
+                    `你還要在監獄裡待 ${timeLeft} 分鐘！`,
                     { jailTimeRemaining: userData.jailedUntil - now }
                 );
             }
@@ -60,7 +60,7 @@ export default {
                 throw createError(
                     "Crime cooldown active",
                     ErrorTypes.RATE_LIMIT,
-                    `You need to wait ${timeLeft} more minutes before committing another crime.`,
+                    `你必須等待 ${timeLeft} 分鐘後才能再次犯案。`,
                     { remaining: lastCrime + CRIME_COOLDOWN - now, cooldownType: 'crime' }
                 );
             }
@@ -74,7 +74,7 @@ export default {
                 throw createError(
                     "Invalid crime type",
                     ErrorTypes.VALIDATION,
-                    "Please select a valid crime type.",
+                    "請選擇一個有效的犯罪類型。",
                     { crimeType }
                 );
             }
@@ -93,13 +93,13 @@ export default {
                 await setEconomyData(client, guildId, userId, userData);
                 
                 const embed = successEmbed(
-                    "🕵️ Crime Successful!",
-                    `You successfully committed ${crime.name} and earned **${amountEarned}** coins!`
+                    "🕵️ 犯罪成功！",
+                    `你成功進行了 **${crime.name}**，賺取了 **$${amountEarned.toLocaleString()}**！`
                 );
                 
                 await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
             } else {
-                // Fine is based on the potential haul of the attempted crime
+                // 罰款根據嘗試犯罪的潛在收穫計算
                 const potentialHaul = Math.floor((crime.min + crime.max) / 2);
                 const fine = Math.min(Math.floor(potentialHaul * FINE_RATE), userData.wallet || 0);
                 userData.wallet = Math.max(0, (userData.wallet || 0) - fine);
@@ -108,9 +108,9 @@ export default {
                 await setEconomyData(client, guildId, userId, userData);
                 
                 const embed = warningEmbed(
-                    "🚔 Crime Failed!",
-                    `You were caught while attempting ${crime.name} and have been sent to jail! ` +
-                    `You were fined ${fine.toLocaleString()} coins and will be in jail for 2 hours.`
+                    "🚔 犯罪失敗！",
+                    `你在嘗試 **${crime.name}** 時被抓包並送進了監獄！` +
+                    `你被罰款 **$${fine.toLocaleString()}** 且必須在監獄裡待上 2 小時。`
                 );
                 
                 await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
