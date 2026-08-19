@@ -40,7 +40,7 @@ export const shopItems = [
     {
         id: 'premium_role',
         name: '高級伺服器身分組',
-        price: 15000,
+        price: 50000,
         description: '授予精美顏色與 10% 每日獎勵的特殊身分組。',
         type: 'role',
         roleId: null,
