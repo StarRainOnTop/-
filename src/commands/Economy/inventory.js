@@ -11,7 +11,7 @@ const SHOP_ITEMS = shopItems;
 export default {
     data: new SlashCommandBuilder()
         .setName('inventory')
-        .setDescription('View your economy inventory'),
+        .setDescription('查看你的經濟背包道具'),
 
     execute: withErrorHandling(async (interaction, config, client) => {
         const deferred = await InteractionHelper.safeDefer(interaction);
@@ -28,14 +28,14 @@ export default {
                 throw createError(
                     "Failed to load economy data for inventory",
                     ErrorTypes.DATABASE,
-                    "Failed to load your economy data. Please try again later.",
+                    "無法載入您的經濟數據，請稍後再試。",
                     { userId, guildId }
                 );
             }
 
             const inventory = userData.inventory || {};
 
-            let inventoryDescription = "Your inventory is currently empty.";
+            let inventoryDescription = "您的背包目前是空的。";
 
             if (Object.keys(inventory).length > 0) {
                 inventoryDescription = Object.entries(inventory)
@@ -48,7 +48,7 @@ export default {
                     .map(
                         ([itemId, quantity]) => {
                             const item = SHOP_ITEMS.find(i => i.id === itemId);
-                            return `**${item.name}:** ${quantity}x`;
+                            return `**${item.name}：** ${quantity}個`;
                         }
                     )
                     .join("\n");
@@ -61,7 +61,7 @@ export default {
             });
 
             const embed = createEmbed({ 
-                title: `🎒 ${interaction.user.username}'s Inventory`, 
+                title: `🎒 ${interaction.user.username} 的背包`, 
                 description: inventoryDescription, 
             }).setThumbnail(interaction.user.displayAvatarURL());
 
