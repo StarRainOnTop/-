@@ -8,7 +8,7 @@ import { getEconomyPrefix } from '../../utils/database.js';
 export default {
     data: new SlashCommandBuilder()
         .setName("eleaderboard")
-        .setDescription("View the server's top 10 richest users.")
+        .setDescription("查看伺服器中最富有的前 10 名使用者")
         .setDMPermission(false),
 
     execute: withErrorHandling(async (interaction, config, client) => {
@@ -31,7 +31,7 @@ export default {
                 throw createError(
                     "No economy data found",
                     ErrorTypes.VALIDATION,
-                    "No economy data found for this server."
+                    "找不到此伺服器的經濟數據。"
                 );
             }
 
@@ -64,7 +64,7 @@ export default {
                 const emoji = rankEmoji[i] || `**#${rank}**`;
 
                 leaderboardEntries.push(
-                    `${emoji} <@${user.userId}> - 🏦 ${user.net_worth.toLocaleString()}`,
+                    `${emoji} <@${user.userId}> - 🏦 $${user.net_worth.toLocaleString()}`,
                 );
             }
 
@@ -76,12 +76,12 @@ export default {
 
             const description = leaderboardEntries.length > 0
                 ? leaderboardEntries.join("\n")
-                : "No economy data is available for this server yet.";
+                : "目前此伺服器尚無可用的經濟數據。";
 
             const embed = createEmbed({
-                title: `Economy Leaderboard`,
+                title: `💰 伺服器財富排行榜`,
                 description,
-                footer: `Your Rank: ${userRank > 0 ?`#${userRank}`: "No ranking data available"}`,
+                footer: `您的排名：${userRank > 0 ? `#${userRank}` : "無排名數據"}`,
             });
 
             await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
