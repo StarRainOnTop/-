@@ -5,15 +5,15 @@ export default {
     slashOnly: true,
     data: new SlashCommandBuilder()
         .setName('shop-config')
-        .setDescription('Configure shop settings. (Manage Server required)')
+        .setDescription('設定商店選項。（需要「管理伺服器」權限）')
         .addSubcommand(subcommand =>
             subcommand
                 .setName('setrole')
-                .setDescription('Set the Discord role granted when the Premium Role shop item is purchased.')
+                .setDescription('設定購買高級身分組商店道具時所授予的 Discord 身分組。')
                 .addRoleOption(option =>
                     option
                         .setName('role')
-                        .setDescription('The role to grant for Premium Role purchases.')
+                        .setDescription('購買高級身分組時要授予的身分組。')
                         .setRequired(true),
                 ),
         ),
