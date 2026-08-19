@@ -5,17 +5,20 @@ import {
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle,
+    UserSelectMenuBuilder,
     MessageFlags,
     ComponentType,
     EmbedBuilder,
+    SlashCommandBuilder,
+    PermissionFlagsBits,
 } from 'discord.js';
-import { getColor, BotConfig } from '../../../config/bot.js';
-import { InteractionHelper } from '../../../utils/interactionHelper.js';
-import { successEmbed } from '../../../utils/embeds.js';
-import { logger } from '../../../utils/logger.js';
-import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
-import { getEconomyPrefix } from '../../../utils/database.js';
-import { getEconomyData, addMoney, removeMoney, getMaxBankCapacity } from '../../../utils/economy.js';
+import { getColor, BotConfig } from '../../config/bot.js';
+import { InteractionHelper } from '../../utils/interactionHelper.js';
+import { successEmbed } from '../../utils/embeds.js';
+import { logger } from '../../utils/logger.js';
+import { TitanBotError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
+import { getEconomyPrefix } from '../../utils/database.js';
+import { getEconomyData, addMoney, removeMoney, getMaxBankCapacity } from '../../utils/economy.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -108,7 +111,7 @@ async function refreshDashboard(rootInteraction, guild, client) {
 
 async function updateConfigFile(currencySymbol, currencyName) {
     try {
-        const configPath = path.join(__dirname, '../../../config/bot.js');
+        const configPath = path.join(__dirname, '../../config/bot.js');
         let configContent = await fs.readFile(configPath, 'utf-8');
 
         configContent = configContent.replace(
@@ -136,8 +139,20 @@ async function updateConfigFile(currencySymbol, currencyName) {
 }
 
 export default {
-    prefixOnly: false,
+    slashOnly: true,
+    data: new SlashCommandBuilder()
+        .setName('economy_dashboard')
+        .setDescription('Open the economy management dashboard')
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+        .setDMPermission(false),
+    category: 'Economy',
+
     async execute(interaction, config, client) {
+        const deferred = await InteractionHelper.safeDefer(interaction, {
+            flags: MessageFlags.Ephemeral,
+        });
+        if (!deferred) return;
+
         try {
             const guild = interaction.guild;
             const selectMenu = buildSelectMenu(guild.id);
@@ -225,13 +240,11 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
         .setCustomId(`economy_add_currency_${guild.id}`)
         .setTitle('增加貨幣');
 
-    const userInput = new TextInputBuilder()
+    const userSelect = new UserSelectMenuBuilder()
         .setCustomId('target_user')
-        .setLabel('目標使用者 (請輸入 User ID)')
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder('例如：123456789012345678')
-        .setMinLength(17)
-        .setMaxLength(20)
+        .setPlaceholder('選擇一位使用者 ID 或標註')
+        .setMinValues(1)
+        .setMaxValues(1)
         .setRequired(true);
 
     const amountInput = new TextInputBuilder()
@@ -253,7 +266,7 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
         .setRequired(true);
 
     modal.addComponents(
-        new ActionRowBuilder().addComponents(userInput),
+        new ActionRowBuilder().addComponents(userSelect),
         new ActionRowBuilder().addComponents(amountInput),
         new ActionRowBuilder().addComponents(typeInput),
     );
@@ -269,8 +282,7 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
 
     if (!submitted) return;
 
-    const rawUserId = submitted.fields.getTextInputValue('target_user').trim();
-    const userId = rawUserId.replace(/<@!?(\d+)>/, '$1'); // 支援直接複製標記或 ID
+    const userId = submitted.fields.getValue('target_user') || submitted.fields.getTextInputValue('target_user');
     const amount = parseInt(submitted.fields.getTextInputValue('amount').trim(), 10);
     const type = submitted.fields.getTextInputValue('type').trim().toLowerCase();
 
@@ -286,7 +298,7 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
 
     const member = await guild.members.fetch(userId).catch(() => null);
     if (!member) {
-        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: '找不到指定的使用者，請確認 User ID 是否正確且在伺服器內。' });
+        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: '指定的使用者不在此伺服器中或 ID 無效。' });
         return;
     }
 
@@ -296,7 +308,6 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
     }
 
     const { newBalance } = await addMoney(client, guild.id, userId, amount, type);
-
     const currencySymbol = BotConfig.economy.currency.symbol;
 
     await submitted.reply({
@@ -320,13 +331,11 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
         .setCustomId(`economy_remove_currency_${guild.id}`)
         .setTitle('扣除貨幣');
 
-    const userInput = new TextInputBuilder()
+    const userSelect = new UserSelectMenuBuilder()
         .setCustomId('target_user')
-        .setLabel('目標使用者 (請輸入 User ID)')
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder('例如：123456789012345678')
-        .setMinLength(17)
-        .setMaxLength(20)
+        .setPlaceholder('選擇一位使用者 ID 或標註')
+        .setMinValues(1)
+        .setMaxValues(1)
         .setRequired(true);
 
     const amountInput = new TextInputBuilder()
@@ -348,7 +357,7 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
         .setRequired(true);
 
     modal.addComponents(
-        new ActionRowBuilder().addComponents(userInput),
+        new ActionRowBuilder().addComponents(userSelect),
         new ActionRowBuilder().addComponents(amountInput),
         new ActionRowBuilder().addComponents(typeInput),
     );
@@ -364,8 +373,7 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
 
     if (!submitted) return;
 
-    const rawUserId = submitted.fields.getTextInputValue('target_user').trim();
-    const userId = rawUserId.replace(/<@!?(\d+)>/, '$1');
+    const userId = submitted.fields.getValue('target_user') || submitted.fields.getTextInputValue('target_user');
     const amount = parseInt(submitted.fields.getTextInputValue('amount').trim(), 10);
     const type = submitted.fields.getTextInputValue('type').trim().toLowerCase();
 
@@ -381,7 +389,7 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
 
     const member = await guild.members.fetch(userId).catch(() => null);
     if (!member) {
-        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: '找不到指定的使用者，請確認 User ID 是否正確且在伺服器內。' });
+        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: '指定的使用者不在此伺服器中或 ID 無效。' });
         return;
     }
 
@@ -391,7 +399,6 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
     }
 
     const { newBalance } = await removeMoney(client, guild.id, userId, amount, type);
-
     const currencySymbol = BotConfig.economy.currency.symbol;
 
     await submitted.reply({
@@ -495,7 +502,7 @@ async function handleChangeName(selectInteraction, rootInteraction, guild) {
     const newName = submitted.fields.getTextInputValue('currency_name').trim();
 
     if (newName.length === 0 || newName.length > 20) {
-        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: '貨幣名稱長度必須介於 1 到 20 個字元之間。` });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: '貨幣名稱長度必須介於 1 到 20 個字元之間。' });
         return;
     }
 
