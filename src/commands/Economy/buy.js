@@ -11,17 +11,17 @@ const SHOP_ITEMS = shopItems;
 export default {
     data: new SlashCommandBuilder()
         .setName('buy')
-        .setDescription('Buy an item from the shop')
+        .setDescription('從商店購買物品')
         .addStringOption(option =>
             option
                 .setName('item_id')
-                .setDescription('ID of the item to buy')
+                .setDescription('要購買的物品 ID')
                 .setRequired(true)
         )
         .addIntegerOption(option =>
             option
                 .setName('quantity')
-                .setDescription('Quantity to buy (default: 1)')
+                .setDescription('購買數量（預設：1）')
                 .setRequired(false)
                 .setMinValue(1)
                 .setMaxValue(10)
@@ -42,7 +42,7 @@ export default {
                 throw createError(
                     `Item ${itemId} not found`,
                     ErrorTypes.VALIDATION,
-                    `The item ID \`${itemId}\` does not exist in the shop.`,
+                    `商店中找不到 ID 為 \`${itemId}\` 的物品。`,
                     { itemId }
                 );
             }
@@ -51,7 +51,7 @@ export default {
                 throw createError(
                     "Invalid quantity",
                     ErrorTypes.VALIDATION,
-                    "You must purchase a quantity of 1 or more.",
+                    "您必須購買 1 個或以上的數量。",
                     { quantity }
                 );
             }
@@ -67,7 +67,7 @@ export default {
                 throw createError(
                     "Insufficient funds",
                     ErrorTypes.VALIDATION,
-                    `You need **$${totalCost.toLocaleString()}** to purchase ${quantity}x **${item.name}**, but you only have **$${userData.wallet.toLocaleString()}** in cash.`,
+                    `您需要 **$${totalCost.toLocaleString()}** 來購買 ${quantity} 個 **${item.name}**，但您的錢包裡只有 **$${userData.wallet.toLocaleString()}** 現金。`,
                     { required: totalCost, current: userData.wallet, itemId, quantity }
                 );
             }
@@ -77,7 +77,7 @@ export default {
                     throw createError(
                         "Premium role not configured",
                         ErrorTypes.CONFIGURATION,
-                        "The **Premium Shop Role** has not been configured by a server administrator yet.",
+                        "伺服器管理員尚未設定**高級商店身分組 (Premium Shop Role)**。",
                         { itemId }
                     );
                 }
@@ -85,7 +85,7 @@ export default {
                     throw createError(
                         "Role already owned",
                         ErrorTypes.VALIDATION,
-                        `You already have the **${item.name}** role.`,
+                        `您已經擁有 **${item.name}** 身分組了。`,
                         { itemId, roleId: PREMIUM_ROLE_ID }
                     );
                 }
@@ -93,7 +93,7 @@ export default {
                     throw createError(
                         "Invalid quantity for role",
                         ErrorTypes.VALIDATION,
-                        `You can only purchase the **${item.name}** role once.`,
+                        `您只能購買 **${item.name}** 身分組一次。`,
                         { itemId, quantity }
                     );
                 }
@@ -101,7 +101,7 @@ export default {
 
             userData.wallet -= totalCost;
 
-            let successDescription = `You successfully purchased ${quantity}x **${item.name}** for **$${totalCost.toLocaleString()}**!`;
+            let successDescription = `您已成功以 **$${totalCost.toLocaleString()}** 購買了 ${quantity} 個 **${item.name}**！`;
 
             if (item.type === "role" && itemId === "premium_role") {
                 const member = interaction.member;
@@ -112,7 +112,7 @@ export default {
                     throw createError(
                         "Role not found",
                         ErrorTypes.CONFIGURATION,
-                        "The configured premium role no longer exists in this guild.",
+                        "此伺服器中已設定的高級身分組已不存在。",
                         { roleId: PREMIUM_ROLE_ID }
                     );
                 }
@@ -120,37 +120,37 @@ export default {
                 try {
                     await member.roles.add(
                         role,
-                        `Purchased role: ${item.name}`,
+                        `購買身分組：${item.name}`,
                     );
-                    successDescription += `\n\n**👑 The role ${role.toString()} has been granted to you!**`;
+                    successDescription += `\n\n**👑 身分組 ${role.toString()} 已經發放給您了！**`;
                 } catch (roleError) {
                     userData.wallet += totalCost;
                     await setEconomyData(client, guildId, userId, userData);
                     throw createError(
                         "Role assignment failed",
                         ErrorTypes.DISCORD_API,
-                        "Successfully deducted money, but failed to grant the role. Your cash has been refunded.",
+                        "已成功扣款，但授予身分組失敗。您的金額已全數退還。",
                         { roleId: PREMIUM_ROLE_ID, originalError: roleError.message }
                     );
                 }
             } else if (item.type === "upgrade") {
                 userData.upgrades[itemId] = true;
-                successDescription += `\n\n**✨ Your upgrade is now active!**`;
+                successDescription += `\n\n**✨ 您的升級項目現已生效！**`;
             } else if (item.type === "consumable" || item.type === "tool") {
                 userData.inventory[itemId] =
                     (userData.inventory[itemId] || 0) + quantity;
                 if (item.type === "tool") {
-                    successDescription += `\n\n**🛠️ ${item.name} added to your inventory!**`;
+                    successDescription += `\n\n**🛠️ ${item.name} 已新增至您的背包！**`;
                 }
             }
 
             await setEconomyData(client, guildId, userId, userData);
 
             const embed = successEmbed(
-                "💰 Purchase Successful",
+                "💰 購買成功",
                 successDescription,
             ).addFields({
-                name: "New Balance",
+                name: "新餘額",
                 value: `$${userData.wallet.toLocaleString()}`,
                 inline: true,
             });
