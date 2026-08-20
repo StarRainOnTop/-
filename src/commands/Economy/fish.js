@@ -9,33 +9,26 @@ const BASE_MIN_REWARD = 300;
 const BASE_MAX_REWARD = 900;
 const FISHING_ROD_MULTIPLIER = 1.5;
 
-// 擴充至 18 種不同的魚類與水生物（包含 id，方便對應收集冊與背包）
+// 🟢 請在這裡填入你伺服器「解鎖全部圖鑑」的特殊身分組 ID
+const SPECIAL_ROLE_ID = '1540051763053338684'; 
+
 const FISH_TYPES = [
-    // --- Common (普通) - 佔 50% ---
     { id: 'bass', name: '鱸魚 (Bass)', emoji: '🐟', rarity: 'common' },
     { id: 'salmon', name: '鮭魚 (Salmon)', emoji: '🐟', rarity: 'common' },
     { id: 'trout', name: '鱒魚 (Trout)', emoji: '🐟', rarity: 'common' },
     { id: 'sardine', name: '沙丁魚 (Sardine)', emoji: '🐟', rarity: 'common' },
     { id: 'seaweed_bundle', name: '海帶束 (Seaweed)', emoji: '🌿', rarity: 'common' },
-
-    // --- Uncommon (罕見) - 佔 25% ---
     { id: 'tuna', name: '鮪魚 (Tuna)', emoji: '🐠', rarity: 'uncommon' },
     { id: 'swordfish', name: '旗魚 (Swordfish)', emoji: '🐠', rarity: 'uncommon' },
     { id: 'pufferfish', name: '河豚 (Pufferfish)', emoji: '🐡', rarity: 'uncommon' },
     { id: 'clownfish', name: '小丑魚 (Clownfish)', emoji: '🐠', rarity: 'uncommon' },
-
-    // --- Rare (稀有) - 佔 15% ---
     { id: 'octopus', name: '章魚 (Octopus)', emoji: '🐙', rarity: 'rare' },
     { id: 'lobster', name: '龍蝦 (Lobster)', emoji: '🦞', rarity: 'rare' },
     { id: 'anglerfish', name: '燈籠魚 (Anglerfish)', emoji: '🏮', rarity: 'rare' },
     { id: 'stingray', name: '扁魟魚 (Stingray)', emoji: '🛸', rarity: 'rare' },
-
-    // --- Epic (史詩) - 佔 8% ---
     { id: 'shark', name: '鯊魚 (Shark)', emoji: '🦈', rarity: 'epic' },
     { id: 'giant_octopus', name: '巨型章魚 (Giant Octopus)', emoji: '🦑', rarity: 'epic' },
     { id: 'electric_eel', name: '電鰻 (Electric Eel)', emoji: '⚡', rarity: 'epic' },
-
-    // --- Legendary (傳說) - 佔 2% ---
     { id: 'whale', name: '鯨魚 (Whale)', emoji: '🐋', rarity: 'legendary' },
     { id: 'leviathan', name: '深海巨獸利維坦 (Leviathan)', emoji: '🌊', rarity: 'legendary' },
 ];
@@ -83,7 +76,6 @@ export default {
         const rand = Math.random();
         let fishCaught;
         
-        // 動態根據稀有度篩選並隨機抽取
         const getFishByRarity = (rarity) => {
             const list = FISH_TYPES.filter(f => f.rarity === rarity);
             return list[Math.floor(Math.random() * list.length)];
@@ -115,15 +107,29 @@ export default {
 
         const catchMessage = CATCH_MESSAGES[Math.floor(Math.random() * CATCH_MESSAGES.length)];
 
-        // 1. 更新金錢與冷卻時間
         userData.wallet += finalEarned;
         userData.lastFish = now;
 
-        // 2. 將釣到的魚自動存入背包（供後續收集冊圖鑑使用）
         if (!userData.inventory) userData.inventory = {};
         userData.inventory[fishCaught.id] = (userData.inventory[fishCaught.id] || 0) + 1;
 
         await setEconomyData(client, guildId, userId, userData);
+
+        // 檢查是否收集了全部種類的魚
+        let roleAwardedMessage = "";
+        try {
+            const member = await interaction.guild.members.fetch(userId);
+            const hasAllFishes = FISH_TYPES.every(f => (userData.inventory[f.id] || 0) > 0);
+            
+            if (hasAllFishes && SPECIAL_ROLE_ID && SPECIAL_ROLE_ID !== '你的身分組ID數字') {
+                if (!member.roles.cache.has(SPECIAL_ROLE_ID)) {
+                    await member.roles.add(SPECIAL_ROLE_ID);
+                    roleAwardedMessage = `\n🎉 **恭喜！你集齊了所有 18 種魚類圖鑑，獲得了專屬特殊身分組！**`;
+                }
+            }
+        } catch (err) {
+            console.error("自動發放身分組失敗:", err);
+        }
 
         const rarityColors = {
             common: '#95A5A6',
@@ -143,7 +149,7 @@ export default {
 
         const embed = createEmbed({
             title: '🎣 釣魚成功！',
-            description: `${catchMessage}\n\n你釣到了一隻 **${fishCaught.emoji} ${fishCaught.name}**！你把它賣掉了，賺取了 **$${finalEarned.toLocaleString()}**！${multiplierMessage}\n📦 *(已將該魚類記錄至你的背包與收集冊)*`,
+            description: `${catchMessage}\n\n你釣到了一隻 **${fishCaught.emoji} ${fishCaught.name}**！你把它賣掉了，賺取了 **$${finalEarned.toLocaleString()}**！${multiplierMessage}${roleAwardedMessage}\n📦 *(已將該魚類記錄至你的背包與收集冊)*`,
             color: rarityColors[fishCaught.rarity]
         })
             .addFields(
