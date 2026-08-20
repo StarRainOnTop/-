@@ -12,7 +12,7 @@ const MAX_WORK_AMOUNT = botConfig.economy?.workMax ?? 100;
 const LAPTOP_MULTIPLIER = 1.5;
 
 // 🟢 請在這裡填入你伺服器「集滿所有職業」的專屬身分組 ID
-const WORK_SPECIAL_ROLE_ID = '你的職場身分組ID數字';
+const WORK_SPECIAL_ROLE_ID = '1540061423034699827';
 
 const WORK_JOBS = [
     { id: 'software_engineer', name: '軟體工程師' },
