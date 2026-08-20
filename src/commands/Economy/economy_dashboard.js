@@ -6,7 +6,6 @@ import {
     TextInputBuilder,
     TextInputStyle,
     UserSelectMenuBuilder,
-    LabelBuilder,
     ButtonBuilder,
     ButtonStyle,
     MessageFlags,
@@ -236,11 +235,6 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
         .setMaxValues(1)
         .setRequired(true);
 
-    const userLabel = new LabelBuilder()
-        .setLabel('目標使用者')
-        .setDescription('要增加貨幣的使用者')
-        .setUserSelectMenuComponent(userSelect);
-
     const amountInput = new TextInputBuilder()
         .setCustomId('amount')
         .setLabel('要增加的金額')
@@ -259,8 +253,8 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
         .setMaxLength(5)
         .setRequired(true);
 
-    modal.addLabelComponents(userLabel);
     modal.addComponents(
+        new ActionRowBuilder().addComponents(userSelect),
         new ActionRowBuilder().addComponents(amountInput),
         new ActionRowBuilder().addComponents(typeInput),
     );
@@ -276,7 +270,7 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
 
     if (!submitted) return;
 
-    const userId = submitted.fields.getField('target_user').values[0];
+    const userId = submitted.fields.getValue('target_user') || submitted.fields.getField('target_user')?.values?.[0];
     const amount = parseInt(submitted.fields.getTextInputValue('amount').trim(), 10);
     const type = submitted.fields.getTextInputValue('type').trim().toLowerCase();
 
@@ -333,11 +327,6 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
         .setMaxValues(1)
         .setRequired(true);
 
-    const userLabel = new LabelBuilder()
-        .setLabel('目標使用者')
-        .setDescription('要扣除貨幣的使用者')
-        .setUserSelectMenuComponent(userSelect);
-
     const amountInput = new TextInputBuilder()
         .setCustomId('amount')
         .setLabel('要扣除的金額')
@@ -356,8 +345,8 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
         .setMaxLength(5)
         .setRequired(true);
 
-    modal.addLabelComponents(userLabel);
     modal.addComponents(
+        new ActionRowBuilder().addComponents(userSelect),
         new ActionRowBuilder().addComponents(amountInput),
         new ActionRowBuilder().addComponents(typeInput),
     );
@@ -373,7 +362,7 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
 
     if (!submitted) return;
 
-    const userId = submitted.fields.getField('target_user').values[0];
+    const userId = submitted.fields.getValue('target_user') || submitted.fields.getField('target_user')?.values?.[0];
     const amount = parseInt(submitted.fields.getTextInputValue('amount').trim(), 10);
     const type = submitted.fields.getTextInputValue('type').trim().toLowerCase();
 
