@@ -50,6 +50,18 @@ export const shopItems = [
         }
     },
     {
+        id: 'custom_role',
+        name: '🎨 自訂專屬身分組',
+        price: 100000,
+        description: '購買後請開啟 Ticket 告訴管理員你想要的名稱與顏色！',
+        type: 'role',
+        roleId: null,
+        effect: {
+            type: 'custom_role_claim',
+            perk: 'exclusive_name_color'
+        }
+    },
+    {
         id: 'lucky_clover',
         name: '幸運草',
         price: 10000,
