@@ -40,9 +40,24 @@ const MINE_LOCATIONS = [
     { id: 'lost_dungeon', name: '黑暗的失落地下城' }
 ];
 
+const WORK_JOBS = [
+    { id: 'software_engineer', name: '軟體工程師' },
+    { id: 'barista', name: '咖啡師' },
+    { id: 'cleaner', name: '清潔工' },
+    { id: 'youtuber', name: 'YouTuber' },
+    { id: 'bot_developer', name: 'Discord 機器人開發者' },
+    { id: 'cashier', name: '收銀員' },
+    { id: 'delivery', name: '披薩外送員' },
+    { id: 'librarian', name: '圖書館員' },
+    { id: 'gardener', name: '園丁' },
+    { id: 'data_analyst', name: '資料分析師' },
+];
+
 // 產生頁面內容與按鈕的輔助函式
-function generatePage(type, userData, username) {
-    if (type === 'fish') {
+function generatePage(page, userData, username) {
+    const row = new ActionRowBuilder();
+
+    if (page === 'fish') {
         const inventory = userData.inventory || {};
         let collectedCount = 0;
         let description = "以下是你的 **釣魚圖鑑** 收集進度：\n\n";
@@ -75,28 +90,22 @@ function generatePage(type, userData, username) {
         const percent = Math.floor((collectedCount / totalFish) * 100);
 
         const embed = createEmbed({
-            title: `🎣 ${username} 的收集冊 (第 1 頁 / 共 2 頁)`,
+            title: `🎣 ${username} 的收集冊 (第 1 頁 / 共 3 頁)`,
             description: description,
             color: '#3498DB'
         }).addFields(
             { name: "釣魚收集進度", value: `**${collectedCount} / ${totalFish}** (${percent}%)`, inline: false }
         );
 
-        const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId('col_fish')
-                .setLabel('🎣 釣魚圖鑑')
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(true), // 當前頁面按鈕停用
-            new ButtonBuilder()
-                .setCustomId('col_mine')
-                .setLabel('⛏️ 挖礦探索 (第 2 頁)')
-                .setStyle(ButtonStyle.Secondary)
+        row.addComponents(
+            new ButtonBuilder().setCustomId('col_fish').setLabel('🎣 釣魚').setStyle(ButtonStyle.Primary).setDisabled(true),
+            new ButtonBuilder().setCustomId('col_mine').setLabel('⛏️ 挖礦').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('col_work').setLabel('💼 工作').setStyle(ButtonStyle.Secondary)
         );
 
         return { embeds: [embed], components: [row] };
 
-    } else {
+    } else if (page === 'mine') {
         const minedLocations = userData.minedLocations || {};
         let collectedCount = 0;
         let description = "以下是你的 **挖礦探索地點** 收集進度：\n\n> ⛏️ **地下與荒野世界**\n\n";
@@ -115,23 +124,51 @@ function generatePage(type, userData, username) {
         const percent = Math.floor((collectedCount / totalLocs) * 100);
 
         const embed = createEmbed({
-            title: `⛏️ ${username} 的收集冊 (第 2 頁 / 共 2 頁)`,
+            title: `⛏️ ${username} 的收集冊 (第 2 頁 / 共 3 頁)`,
             description: description,
             color: '#E67E22'
         }).addFields(
             { name: "挖礦探索進度", value: `**${collectedCount} / ${totalLocs}** (${percent}%)`, inline: false }
         );
 
-        const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId('col_fish')
-                .setLabel('🎣 釣魚圖鑑 (第 1 頁)')
-                .setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder()
-                .setCustomId('col_mine')
-                .setLabel('⛏️ 挖礦探索')
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(true) // 當前頁面按鈕停用
+        row.addComponents(
+            new ButtonBuilder().setCustomId('col_fish').setLabel('🎣 釣魚').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('col_mine').setLabel('⛏️ 挖礦').setStyle(ButtonStyle.Primary).setDisabled(true),
+            new ButtonBuilder().setCustomId('col_work').setLabel('💼 工作').setStyle(ButtonStyle.Secondary)
+        );
+
+        return { embeds: [embed], components: [row] };
+
+    } else {
+        const workedJobs = userData.workedJobs || {};
+        let collectedCount = 0;
+        let description = "以下是你的 **職場履歷與職業** 收集進度：\n\n> 💼 **社會各界職業**\n\n";
+
+        for (const job of WORK_JOBS) {
+            const count = workedJobs[job.id] || 0;
+            if (count > 0) {
+                collectedCount++;
+                description += `> ✨ **${job.name}** (已體驗 ${count} 次)\n`;
+            } else {
+                description += `> ❓ ~~${job.name}~~ (未體驗)\n`;
+            }
+        }
+
+        const totalJobs = WORK_JOBS.length;
+        const percent = Math.floor((collectedCount / totalJobs) * 100);
+
+        const embed = createEmbed({
+            title: `💼 ${username} 的收集冊 (第 3 頁 / 共 3 頁)`,
+            description: description,
+            color: '#2ECC71'
+        }).addFields(
+            { name: "職場職業進度", value: `**${collectedCount} / ${totalJobs}** (${percent}%)`, inline: false }
+        );
+
+        row.addComponents(
+            new ButtonBuilder().setCustomId('col_fish').setLabel('🎣 釣魚').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('col_mine').setLabel('⛏️ 挖礦').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('col_work').setLabel('💼 工作').setStyle(ButtonStyle.Primary).setDisabled(true)
         );
 
         return { embeds: [embed], components: [row] };
@@ -141,7 +178,7 @@ function generatePage(type, userData, username) {
 export default {
     data: new SlashCommandBuilder()
         .setName('collection')
-        .setDescription('查看你的釣魚圖鑑與挖礦探索收集進度'),
+        .setDescription('查看你的釣魚圖鑑、挖礦探索與職場職業收集進度'),
 
     execute: withErrorHandling(async (interaction, config, client) => {
         const deferred = await InteractionHelper.safeDefer(interaction);
@@ -156,7 +193,6 @@ export default {
 
         const reply = await interaction.editReply(initialMessage);
 
-        // 建立按鈕互動監聽（設定 60 秒超時）
         const collector = reply.createMessageComponentCollector({
             filter: i => i.user.id === interaction.user.id,
             time: 60000 
@@ -164,23 +200,22 @@ export default {
 
         collector.on('collect', async i => {
             const freshUserData = await getEconomyData(client, guildId, userId);
-            let nextPageData;
+            let targetPage = 'fish';
 
-            if (i.customId === 'col_fish') {
-                nextPageData = generatePage('fish', freshUserData, username);
-            } else if (i.customId === 'col_mine') {
-                nextPageData = generatePage('mine', freshUserData, username);
-            }
+            if (i.customId === 'col_fish') targetPage = 'fish';
+            else if (i.customId === 'col_mine') targetPage = 'mine';
+            else if (i.customId === 'col_work') targetPage = 'work';
 
+            const nextPageData = generatePage(targetPage, freshUserData, username);
             await i.update(nextPageData);
         });
 
         collector.on('end', async () => {
             try {
-                // 超時後移除按鈕
                 const disabledRow = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId('col_fish').setLabel('🎣 釣魚圖鑑').setStyle(ButtonStyle.Secondary).setDisabled(true),
-                    new ButtonBuilder().setCustomId('col_mine').setLabel('⛏️ 挖礦探索').setStyle(ButtonStyle.Secondary).setDisabled(true)
+                    new ButtonBuilder().setCustomId('col_fish').setLabel('🎣 釣魚').setStyle(ButtonStyle.Secondary).setDisabled(true),
+                    new ButtonBuilder().setCustomId('col_mine').setLabel('⛏️ 挖礦').setStyle(ButtonStyle.Secondary).setDisabled(true),
+                    new ButtonBuilder().setCustomId('col_work').setLabel('💼 工作').setStyle(ButtonStyle.Secondary).setDisabled(true)
                 );
                 await interaction.editReply({ components: [disabledRow] });
             } catch (err) {
