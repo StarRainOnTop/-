@@ -16,7 +16,7 @@ export default {
         .addSubcommand(subcommand =>
             subcommand
                 .setName("setup")
-                .setDescription("Set up the verification system")
+                .setDescription("Set up the verification system with one or multiple roles")
                 .addChannelOption(option =>
                     option
                         .setName("verification_channel")
@@ -27,8 +27,20 @@ export default {
                 .addRoleOption(option =>
                     option
                         .setName("verified_role")
-                        .setDescription("Role to give to verified users")
+                        .setDescription("Primary role to give to verified users")
                         .setRequired(true)
+                )
+                .addRoleOption(option =>
+                    option
+                        .setName("extra_role_1")
+                        .setDescription("Additional role to give upon verification (Optional)")
+                        .setRequired(false)
+                )
+                .addRoleOption(option =>
+                    option
+                        .setName("extra_role_2")
+                        .setDescription("Another additional role to give upon verification (Optional)")
+                        .setRequired(false)
                 )
                 .addStringOption(option =>
                     option
@@ -100,6 +112,14 @@ export default {
 async function handleSetup(interaction, guild, client) {
     const verificationChannel = interaction.options.getChannel("verification_channel");
     const verifiedRole = interaction.options.getRole("verified_role");
+    const extraRole1 = interaction.options.getRole("extra_role_1");
+    const extraRole2 = interaction.options.getRole("extra_role_2");
+    
+    // 收集所有選擇要發放的身分組
+    const rolesToGive = [verifiedRole];
+    if (extraRole1) rolesToGive.push(extraRole1);
+    if (extraRole2) rolesToGive.push(extraRole2);
+
     const message = interaction.options.getString("message") || botConfig.verification.defaultMessage;
     const buttonText = interaction.options.getString("button_text") || botConfig.verification.defaultButtonText;
     const botMember = guild.members.me;
@@ -140,23 +160,24 @@ async function handleSetup(interaction, guild, client) {
         );
     }
 
-    if (verifiedRole.id === guild.id || verifiedRole.managed) {
-        throw createError(
-            'Invalid verified role selected',
-            ErrorTypes.VALIDATION,
-            'Please choose a normal assignable role (not @everyone or an integration-managed role).',
-            { roleId: verifiedRole.id, managed: verifiedRole.managed }
-        );
-    }
-
     const botRole = botMember.roles.highest;
-    if (verifiedRole.position >= botRole.position) {
-        throw createError(
-            "Role hierarchy error",
-            ErrorTypes.PERMISSION,
-            "The verified role must be below my highest role in the server role hierarchy.",
-            { rolePosition: verifiedRole.position, botRolePosition: botRole.position }
-        );
+    for (const r of rolesToGive) {
+        if (r.id === guild.id || r.managed) {
+            throw createError(
+                'Invalid verified role selected',
+                ErrorTypes.VALIDATION,
+                `Please choose normal assignable roles (not @everyone or a managed role). Error with: ${r.name}`,
+                { roleId: r.id, managed: r.managed }
+            );
+        }
+        if (r.position >= botRole.position) {
+            throw createError(
+                "Role hierarchy error",
+                ErrorTypes.PERMISSION,
+                `The role **${r.name}** must be below my highest role in the server role hierarchy.`,
+                { rolePosition: r.position, botRolePosition: botRole.position }
+            );
+        }
     }
 
     const guildConfig = await getGuildConfig(client, guild.id);
@@ -200,11 +221,13 @@ async function handleSetup(interaction, guild, client) {
         components: [verifyButton]
     });
 
+    // 儲存陣列格式的身分組 ID
     guildConfig.verification = {
         enabled: true,
         channelId: verificationChannel.id,
         messageId: verifyMessage.id,
-        roleId: verifiedRole.id,
+        roleId: verifiedRole.id, // 相容舊版單一欄位
+        roleIds: rolesToGive.map(r => r.id), // 新增多身分組陣列支援
         message: message,
         buttonText: buttonText
     };
@@ -216,7 +239,7 @@ async function handleSetup(interaction, guild, client) {
             'Verification System Updated',
             [
                 `Channel: ${verificationChannel}`,
-                `Verified Role: ${verifiedRole}`,
+                `Assigned Roles: ${rolesToGive.map(r => r.toString()).join(', ')}`,
                 `Button Text: ${buttonText}`
             ].join('\n')
         )]
@@ -233,7 +256,7 @@ async function handleRemove(interaction, guild, client) {
 
     if (result.status === 'not_verified') {
         return await InteractionHelper.safeReply(interaction, {
-            embeds: [infoEmbed('Not Verified', `${targetUser.tag} does not currently have the verified role.`)],
+            embeds: [infoEmbed('Not Verified', `${targetUser.tag} does not currently have the verified roles.`)],
             flags: MessageFlags.Ephemeral
         });
     }
