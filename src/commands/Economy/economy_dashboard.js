@@ -5,22 +5,17 @@ import {
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle,
-    UserSelectMenuBuilder,
-    ButtonBuilder,
-    ButtonStyle,
     MessageFlags,
     ComponentType,
     EmbedBuilder,
-    SlashCommandBuilder,
-    PermissionFlagsBits,
 } from 'discord.js';
-import { getColor, BotConfig } from '../../config/bot.js';
-import { InteractionHelper } from '../../utils/interactionHelper.js';
-import { successEmbed } from '../../utils/embeds.js';
-import { logger } from '../../utils/logger.js';
-import { TitanBotError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
-import { getEconomyPrefix } from '../../utils/database.js';
-import { getEconomyData, addMoney, removeMoney, getMaxBankCapacity } from '../../utils/economy.js';
+import { getColor, BotConfig } from '../../../config/bot.js';
+import { InteractionHelper } from '../../../utils/interactionHelper.js';
+import { successEmbed } from '../../../utils/embeds.js';
+import { logger } from '../../../utils/logger.js';
+import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
+import { getEconomyPrefix } from '../../../utils/database.js';
+import { addMoney, removeMoney } from '../../../utils/economy.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -59,43 +54,43 @@ async function buildDashboardEmbed(guild, client) {
     const avgBalance = userCount > 0 ? Math.floor(totalInCirculation / userCount) : 0;
 
     return new EmbedBuilder()
-        .setTitle('💰 經濟控制面板')
-        .setDescription(`管理 **${guild.name}** 的經濟系統。\n請從下方選擇一個選項來執行操作。`)
+        .setTitle('💰 Economy Dashboard')
+        .setDescription(`Manage the economy system for **${guild.name}**.\nSelect an option below to perform an action.`)
         .setColor(getColor('economy'))
         .addFields(
-            { name: '💰 流通總額', value: `\`${currencySymbol}${totalInCirculation.toLocaleString()}\``, inline: true },
-            { name: '👥 活躍用戶', value: `\`${userCount.toLocaleString()}\``, inline: true },
-            { name: '📊 平均餘額', value: `\`${currencySymbol}${avgBalance.toLocaleString()}\``, inline: true },
-            { name: '💱 貨幣符號', value: `\`${currencySymbol}\``, inline: true },
-            { name: '📝 貨幣名稱', value: `\`${currencyName}\``, inline: true },
+            { name: '💰 Total in Circulation', value: `\`${currencySymbol}${totalInCirculation.toLocaleString()}\``, inline: true },
+            { name: '👥 Active Users', value: `\`${userCount.toLocaleString()}\``, inline: true },
+            { name: '📊 Average Balance', value: `\`${currencySymbol}${avgBalance.toLocaleString()}\``, inline: true },
+            { name: '💱 Currency Symbol', value: `\`${currencySymbol}\``, inline: true },
+            { name: '📝 Currency Name', value: `\`${currencyName}\``, inline: true },
         )
-        .setFooter({ text: '控制面板將在閒置 10 分鐘後關閉' })
+        .setFooter({ text: 'Dashboard closes after 10 minutes of inactivity' })
         .setTimestamp();
 }
 
 function buildSelectMenu(guildId) {
     return new StringSelectMenuBuilder()
         .setCustomId(`economy_dashboard_${guildId}`)
-        .setPlaceholder('選擇一項操作...')
+        .setPlaceholder('Select an action...')
         .addOptions(
             new StringSelectMenuOptionBuilder()
-                .setLabel('增加貨幣')
-                .setDescription('新增貨幣至使用者的錢包或銀行')
+                .setLabel('Add Currency')
+                .setDescription('Add currency to a user\'s wallet or bank')
                 .setValue('add_currency')
                 .setEmoji('💰'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('扣除貨幣')
-                .setDescription('從使用者的錢包或銀行扣除貨幣')
+                .setLabel('Remove Currency')
+                .setDescription('Remove currency from a user\'s wallet or bank')
                 .setValue('remove_currency')
                 .setEmoji('💸'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('更改貨幣符號')
-                .setDescription('更改貨幣符號（例如：$, €, £）')
+                .setLabel('Change Currency Symbol')
+                .setDescription('Change the currency symbol (e.g., $, €, £)')
                 .setValue('change_currency')
                 .setEmoji('💱'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('更改貨幣名稱')
-                .setDescription('更改貨幣名稱（例如：金幣、點數）')
+                .setLabel('Change Currency Name')
+                .setDescription('Change the currency name (e.g., coins, credits)')
                 .setValue('change_name')
                 .setEmoji('📝'),
         );
@@ -113,7 +108,7 @@ async function refreshDashboard(rootInteraction, guild, client) {
 
 async function updateConfigFile(currencySymbol, currencyName) {
     try {
-        const configPath = path.join(__dirname, '../../config/bot.js');
+        const configPath = path.join(__dirname, '../../../config/bot.js');
         let configContent = await fs.readFile(configPath, 'utf-8');
 
         configContent = configContent.replace(
@@ -141,20 +136,8 @@ async function updateConfigFile(currencySymbol, currencyName) {
 }
 
 export default {
-    slashOnly: true,
-    data: new SlashCommandBuilder()
-        .setName('economy_dashboard')
-        .setDescription('Open the economy management dashboard')
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-        .setDMPermission(false),
-    category: 'Economy',
-
+    prefixOnly: false,
     async execute(interaction, config, client) {
-        const deferred = await InteractionHelper.safeDefer(interaction, {
-            flags: MessageFlags.Ephemeral,
-        });
-        if (!deferred) return;
-
         try {
             const guild = interaction.guild;
             const selectMenu = buildSelectMenu(guild.id);
@@ -198,8 +181,8 @@ export default {
 
                     const errorMessage =
                         error instanceof TitanBotError
-                            ? error.userMessage || '處理您的選擇時發生錯誤。'
-                            : '處理您的請求時發生未預期的錯誤。';
+                            ? error.userMessage || 'An error occurred while processing your selection.'
+                            : 'An unexpected error occurred while processing your request.';
 
                     if (!selectInteraction.replied && !selectInteraction.deferred) {
                         await selectInteraction.deferUpdate().catch(() => {});
@@ -215,8 +198,8 @@ export default {
             collector.on('end', async (collected, reason) => {
                 if (reason === 'time') {
                     const timeoutEmbed = new EmbedBuilder()
-                        .setTitle('控制面板已逾時')
-                        .setDescription('此控制面板因閒置已關閉。請重新執行指令以繼續。')
+                        .setTitle('Dashboard Timed Out')
+                        .setDescription('This dashboard has been closed due to inactivity. Please run the command again to continue.')
                         .setColor(getColor('error'));
                     
                     await InteractionHelper.safeEditReply(interaction, {
@@ -231,7 +214,7 @@ export default {
             throw new TitanBotError(
                 `Economy dashboard failed: ${error.message}`,
                 ErrorTypes.UNKNOWN,
-                '無法開啟經濟控制面板。',
+                'Failed to open the economy dashboard.',
             );
         }
     },
@@ -240,23 +223,20 @@ export default {
 async function handleAddCurrency(selectInteraction, rootInteraction, guild, client) {
     const modal = new ModalBuilder()
         .setCustomId(`economy_add_currency_${guild.id}`)
-        .setTitle('增加貨幣');
+        .setTitle('Add Currency');
 
-    const userSelect = new UserSelectMenuBuilder()
+    const userInput = new TextInputBuilder()
         .setCustomId('target_user')
-        .setPlaceholder('選擇一位使用者...')
-        .setMinValues(1)
-        .setMaxValues(1)
+        .setLabel('Target User ID')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('Enter user ID')
+        .setMinLength(15)
+        .setMaxLength(25)
         .setRequired(true);
-
-    const userLabel = new LabelBuilder()
-        .setLabel('目標使用者')
-        .setDescription('要增加貨幣的使用者')
-        .setUserSelectMenuComponent(userSelect);
 
     const amountInput = new TextInputBuilder()
         .setCustomId('amount')
-        .setLabel('要增加的金額')
+        .setLabel('Amount to add')
         .setStyle(TextInputStyle.Short)
         .setPlaceholder('100')
         .setMinLength(1)
@@ -265,15 +245,15 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
 
     const typeInput = new TextInputBuilder()
         .setCustomId('type')
-        .setLabel('類型 (wallet 或 bank)')
+        .setLabel('Type (wallet or bank)')
         .setStyle(TextInputStyle.Short)
         .setPlaceholder('wallet')
         .setMinLength(1)
         .setMaxLength(5)
         .setRequired(true);
 
-    modal.addLabelComponents(userLabel);
     modal.addComponents(
+        new ActionRowBuilder().addComponents(userInput),
         new ActionRowBuilder().addComponents(amountInput),
         new ActionRowBuilder().addComponents(typeInput),
     );
@@ -289,28 +269,28 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
 
     if (!submitted) return;
 
-    const userId = submitted.fields.getField('target_user').values[0];
+    const userId = submitted.fields.getTextInputValue('target_user').trim();
     const amount = parseInt(submitted.fields.getTextInputValue('amount').trim(), 10);
     const type = submitted.fields.getTextInputValue('type').trim().toLowerCase();
 
     if (isNaN(amount) || amount <= 0) {
-        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: '金額必須為正數。' });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Amount must be a positive number.' });
         return;
     }
 
     if (type !== 'wallet' && type !== 'bank') {
-        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: '類型必須是 "wallet"（錢包）或 "bank"（銀行）。' });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Type must be either "wallet" or "bank".' });
         return;
     }
 
     const member = await guild.members.fetch(userId).catch(() => null);
     if (!member) {
-        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: '指定的使用者不在此伺服器中。' });
+        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: 'The specified user is not in this server.' });
         return;
     }
 
     if (member.user.bot) {
-        await replyUserError(submitted, { type: ErrorTypes.UNKNOWN, message: '機器人沒有經濟帳戶。' });
+        await replyUserError(submitted, { type: ErrorTypes.UNKNOWN, message: 'Bots do not have economy accounts.' });
         return;
     }
 
@@ -319,7 +299,7 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
     const currencySymbol = BotConfig.economy.currency.symbol;
 
     await submitted.reply({
-        embeds: [successEmbed('已增加貨幣', `成功向 ${member.user.tag} 的${type === 'wallet' ? '錢包' : '銀行'}增加 ${currencySymbol}${amount.toLocaleString()}。\n**新餘額：** ${currencySymbol}${newBalance.toLocaleString()}`)],
+        embeds: [successEmbed('Currency Added', `Successfully added ${currencySymbol}${amount.toLocaleString()} to ${member.user.tag}'s ${type}.\n**New Balance:** ${currencySymbol}${newBalance.toLocaleString()}`)],
         flags: MessageFlags.Ephemeral,
     });
 
@@ -337,23 +317,20 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
 async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, client) {
     const modal = new ModalBuilder()
         .setCustomId(`economy_remove_currency_${guild.id}`)
-        .setTitle('扣除貨幣');
+        .setTitle('Remove Currency');
 
-    const userSelect = new UserSelectMenuBuilder()
+    const userInput = new TextInputBuilder()
         .setCustomId('target_user')
-        .setPlaceholder('選擇一位使用者...')
-        .setMinValues(1)
-        .setMaxValues(1)
+        .setLabel('Target User ID')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('Enter user ID')
+        .setMinLength(15)
+        .setMaxLength(25)
         .setRequired(true);
-
-    const userLabel = new LabelBuilder()
-        .setLabel('目標使用者')
-        .setDescription('要扣除貨幣的使用者')
-        .setUserSelectMenuComponent(userSelect);
 
     const amountInput = new TextInputBuilder()
         .setCustomId('amount')
-        .setLabel('要扣除的金額')
+        .setLabel('Amount to remove')
         .setStyle(TextInputStyle.Short)
         .setPlaceholder('100')
         .setMinLength(1)
@@ -362,15 +339,15 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
 
     const typeInput = new TextInputBuilder()
         .setCustomId('type')
-        .setLabel('類型 (wallet 或 bank)')
+        .setLabel('Type (wallet or bank)')
         .setStyle(TextInputStyle.Short)
         .setPlaceholder('wallet')
         .setMinLength(1)
         .setMaxLength(5)
         .setRequired(true);
 
-    modal.addLabelComponents(userLabel);
     modal.addComponents(
+        new ActionRowBuilder().addComponents(userInput),
         new ActionRowBuilder().addComponents(amountInput),
         new ActionRowBuilder().addComponents(typeInput),
     );
@@ -386,28 +363,28 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
 
     if (!submitted) return;
 
-    const userId = submitted.fields.getField('target_user').values[0];
+    const userId = submitted.fields.getTextInputValue('target_user').trim();
     const amount = parseInt(submitted.fields.getTextInputValue('amount').trim(), 10);
     const type = submitted.fields.getTextInputValue('type').trim().toLowerCase();
 
     if (isNaN(amount) || amount <= 0) {
-        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: '金額必須為正數。' });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Amount must be a positive number.' });
         return;
     }
 
     if (type !== 'wallet' && type !== 'bank') {
-        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: '類型必須是 "wallet"（錢包）或 "bank"（銀行）。' });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Type must be either "wallet" or "bank".' });
         return;
     }
 
     const member = await guild.members.fetch(userId).catch(() => null);
     if (!member) {
-        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: '指定的使用者不在此伺服器中。' });
+        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: 'The specified user is not in this server.' });
         return;
     }
 
     if (member.user.bot) {
-        await replyUserError(submitted, { type: ErrorTypes.UNKNOWN, message: '機器人沒有經濟帳戶。' });
+        await replyUserError(submitted, { type: ErrorTypes.UNKNOWN, message: 'Bots do not have economy accounts.' });
         return;
     }
 
@@ -416,7 +393,7 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
     const currencySymbol = BotConfig.economy.currency.symbol;
 
     await submitted.reply({
-        embeds: [successEmbed('已扣除貨幣', `成功從 ${member.user.tag} 的${type === 'wallet' ? '錢包' : '銀行'}扣除 ${currencySymbol}${amount.toLocaleString()}。\n**新餘額：** ${currencySymbol}${newBalance.toLocaleString()}`)],
+        embeds: [successEmbed('Currency Removed', `Successfully removed ${currencySymbol}${amount.toLocaleString()} from ${member.user.tag}'s ${type}.\n**New Balance:** ${currencySymbol}${newBalance.toLocaleString()}`)],
         flags: MessageFlags.Ephemeral,
     });
 
@@ -434,11 +411,11 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
 async function handleChangeCurrency(selectInteraction, rootInteraction, guild) {
     const modal = new ModalBuilder()
         .setCustomId(`economy_change_currency_${guild.id}`)
-        .setTitle('更改貨幣符號');
+        .setTitle('Change Currency Symbol');
 
     const symbolInput = new TextInputBuilder()
         .setCustomId('currency_symbol')
-        .setLabel('新貨幣符號')
+        .setLabel('New Currency Symbol')
         .setStyle(TextInputStyle.Short)
         .setValue(BotConfig.economy.currency.symbol)
         .setPlaceholder('$')
@@ -462,19 +439,19 @@ async function handleChangeCurrency(selectInteraction, rootInteraction, guild) {
     const newSymbol = submitted.fields.getTextInputValue('currency_symbol').trim();
 
     if (newSymbol.length === 0 || newSymbol.length > 3) {
-        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: '貨幣符號長度必須介於 1 到 3 個字元之間。' });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Currency symbol must be 1-3 characters long.' });
         return;
     }
 
     const success = await updateConfigFile(newSymbol, BotConfig.economy.currency.name);
 
     if (!success) {
-        await replyUserError(submitted, { type: ErrorTypes.UNKNOWN, message: '無法更新設定檔，請檢查記錄檔。' });
+        await replyUserError(submitted, { type: ErrorTypes.UNKNOWN, message: 'Could not update the config file. Please check the logs.' });
         return;
     }
 
     await submitted.reply({
-        embeds: [successEmbed('貨幣符號已更新', `貨幣符號已變更為 **${newSymbol}**。\n\n**注意：** 需要重新啟動機器人才能使變更生效。`)],
+        embeds: [successEmbed('Currency Symbol Updated', `Currency symbol changed to **${newSymbol}**.\n\n**Note:** The bot needs to be restarted for changes to take effect.`)],
         flags: MessageFlags.Ephemeral,
     });
 
@@ -488,14 +465,14 @@ async function handleChangeCurrency(selectInteraction, rootInteraction, guild) {
 async function handleChangeName(selectInteraction, rootInteraction, guild) {
     const modal = new ModalBuilder()
         .setCustomId(`economy_change_name_${guild.id}`)
-        .setTitle('更改貨幣名稱');
+        .setTitle('Change Currency Name');
 
     const nameInput = new TextInputBuilder()
         .setCustomId('currency_name')
-        .setLabel('新貨幣名稱')
+        .setLabel('New Currency Name')
         .setStyle(TextInputStyle.Short)
         .setValue(BotConfig.economy.currency.name)
-        .setPlaceholder('金幣')
+        .setPlaceholder('coins')
         .setMinLength(1)
         .setMaxLength(20)
         .setRequired(true);
@@ -516,19 +493,19 @@ async function handleChangeName(selectInteraction, rootInteraction, guild) {
     const newName = submitted.fields.getTextInputValue('currency_name').trim();
 
     if (newName.length === 0 || newName.length > 20) {
-        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: '貨幣名稱長度必須介於 1 到 20 個字元之間。' });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Currency name must be 1-20 characters long.' });
         return;
     }
 
     const success = await updateConfigFile(BotConfig.economy.currency.symbol, newName);
 
     if (!success) {
-        await replyUserError(submitted, { type: ErrorTypes.UNKNOWN, message: '無法更新設定檔，請檢查記錄檔。' });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Could not update the config file. Please check the logs.' });
         return;
     }
 
     await submitted.reply({
-        embeds: [successEmbed('貨幣名稱已更新', `貨幣名稱已變更為 **${newName}**。\n\n**注意：** 需要重新啟動機器人才能使變更生效。`)],
+        embeds: [successEmbed('Currency Name Updated', `Currency name changed to **${newName}**.\n\n**Note:** The bot needs to be restarted for changes to take effect.`)],
         flags: MessageFlags.Ephemeral,
     });
 
