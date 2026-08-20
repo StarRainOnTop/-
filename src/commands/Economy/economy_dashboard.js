@@ -13,13 +13,13 @@ import {
     ComponentType,
     EmbedBuilder,
 } from 'discord.js';
-import { getColor, BotConfig } from '../../../config/bot.js';
-import { InteractionHelper } from '../../../utils/interactionHelper.js';
-import { successEmbed } from '../../../utils/embeds.js';
-import { logger } from '../../../utils/logger.js';
-import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
-import { getEconomyPrefix } from '../../../utils/database.js';
-import { getEconomyData, addMoney, removeMoney, getMaxBankCapacity } from '../../../utils/economy.js';
+import { getColor, BotConfig } from '../../config/bot.js';
+import { InteractionHelper } from '../../utils/interactionHelper.js';
+import { successEmbed } from '../../utils/embeds.js';
+import { logger } from '../../utils/logger.js';
+import { TitanBotError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
+import { getEconomyPrefix } from '../../utils/database.js';
+import { getEconomyData, addMoney, removeMoney, getMaxBankCapacity } from '../../utils/economy.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -112,7 +112,7 @@ async function refreshDashboard(rootInteraction, guild, client) {
 
 async function updateConfigFile(currencySymbol, currencyName) {
     try {
-        const configPath = path.join(__dirname, '../../../config/bot.js');
+        const configPath = path.join(__dirname, '../../config/bot.js');
         let configContent = await fs.readFile(configPath, 'utf-8');
 
         configContent = configContent.replace(
