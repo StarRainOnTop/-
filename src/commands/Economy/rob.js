@@ -7,13 +7,14 @@ import { BotConfig } from '../../config/bot.js';
 
 const ROB_COOLDOWN = BotConfig.economy?.cooldowns?.rob ?? 2 * 60 * 60 * 1000;
 const BASE_ROB_SUCCESS_CHANCE = BotConfig.economy?.robSuccessRate ?? 0.4;
-const ROB_PERCENTAGE = 0.15;
+const ROB_WALLET_PERCENTAGE = 0.15; // 搶奪身上現金的 15%
+const ROB_BANK_PERCENTAGE = 0.05;   // 額外搶奪銀行存款的 5%
 const FINE_PERCENTAGE = 0.1;
 
 export default {
     data: new SlashCommandBuilder()
         .setName('rob')
-        .setDescription('嘗試搶劫其他使用者（風險極高）')
+        .setDescription('嘗試搶劫其他使用者的現金與部分銀行存款（風險極高）')
         .addUserOption(option =>
             option
                 .setName('user')
@@ -75,12 +76,14 @@ export default {
             );
         }
 
-        if (victimData.wallet < 500) {
+        // 確保受害者有足夠的資產才值得動手（現金或銀行加起來至少 $500）
+        const victimTotalWealth = (victimData.wallet || 0) + (victimData.bank || 0);
+        if (victimTotalWealth < 500) {
             throw createError(
                 "Victim too poor",
                 ErrorTypes.VALIDATION,
-                `${victimUser.username} 太窮了。他們需要至少 $500 現金才值得動手。`,
-                { victimWallet: victimData.wallet, required: 500 }
+                `${victimUser.username} 太窮了。他們需要至少 $500 的總資產才值得動手。`,
+                { victimTotalWealth, required: 500 }
             );
         }
 
@@ -88,7 +91,7 @@ export default {
         const hasSafe = (victimData.inventory?.['personal_safe'] || 0) > 0;
 
         if (hasSafe) {
-            // 扣除 1 個保險箱當作消耗耐久度
+            // 保險箱發動：扣除 1 點耐久度
             victimData.inventory['personal_safe'] -= 1;
             if (victimData.inventory['personal_safe'] <= 0) {
                 delete victimData.inventory['personal_safe'];
@@ -102,7 +105,7 @@ export default {
                 embeds: [
                     warningEmbed(
                         '搶劫被阻擋',
-                        `${victimUser.username} 早有準備！對方擁有**個人保險箱**，你的搶劫失敗了。保險箱幫忙擋下了這次攻擊（耐久度消耗 1）。`
+                        `${victimUser.username} 早有準備！對方擁有**個人保險箱**，不僅保住了現金，連銀行存款也被完美保護。你的搶劫失敗了（保險箱耐久度消耗 1）。`
                     )
                 ],
             });
@@ -112,14 +115,18 @@ export default {
         let resultEmbed;
 
         if (isSuccessful) {
-            const amountStolen = Math.floor(victimData.wallet * ROB_PERCENTAGE);
+            // 計算可搶奪的現金與銀行金額
+            const walletStolen = Math.floor((victimData.wallet || 0) * ROB_WALLET_PERCENTAGE);
+            const bankStolen = Math.floor((victimData.bank || 0) * ROB_BANK_PERCENTAGE);
+            const totalStolen = walletStolen + bankStolen;
 
-            robberData.wallet = (robberData.wallet || 0) + amountStolen;
-            victimData.wallet = (victimData.wallet || 0) - amountStolen;
+            robberData.wallet = (robberData.wallet || 0) + totalStolen;
+            victimData.wallet = (victimData.wallet || 0) - walletStolen;
+            victimData.bank = (victimData.bank || 0) - bankStolen;
 
             resultEmbed = successEmbed(
                 '搶劫成功',
-                `你成功從 ${victimUser.username} 那裡偷走了 **$${amountStolen.toLocaleString()}**！`
+                `你成功從 ${victimUser.username} 那裡突破防線！\n掠奪了現金 **$${walletStolen.toLocaleString()}** 與銀行存款 **$${bankStolen.toLocaleString()}**，共計 **$${totalStolen.toLocaleString()}**！`
             );
         } else {
             const fineAmount = Math.floor((robberData.wallet || 0) * FINE_PERCENTAGE);
@@ -150,8 +157,8 @@ export default {
                     inline: true,
                 },
                 {
-                    name: `受害者的現金餘額 (${victimUser.username})`,
-                    value: `$${victimData.wallet.toLocaleString()}`,
+                    name: `受害者剩餘資產 (${victimUser.username})`,
+                    value: `現金: $${(victimData.wallet || 0).toLocaleString()}\n銀行: $${(victimData.bank || 0).toLocaleString()}`,
                     inline: true,
                 },
             )
