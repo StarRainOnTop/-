@@ -84,20 +84,25 @@ export default {
             );
         }
 
-        // 檢查受害者是否處於防盜護罩保護期內
-        const isProtected = victimData.shieldExpiresAt && victimData.shieldExpiresAt > now;
+        // 檢查受害者是否擁有個人保險箱 (personal_safe)
+        const hasSafe = (victimData.inventory?.['personal_safe'] || 0) > 0;
 
-        if (isProtected) {
+        if (hasSafe) {
+            // 扣除 1 個保險箱當作消耗耐久度
+            victimData.inventory['personal_safe'] -= 1;
+            if (victimData.inventory['personal_safe'] <= 0) {
+                delete victimData.inventory['personal_safe'];
+            }
+            await setEconomyData(client, guildId, victimUser.id, victimData);
+
             robberData.lastRob = now;
             await setEconomyData(client, guildId, robberId, robberData);
-
-            const expireDateStr = new Date(victimData.shieldExpiresAt).toLocaleDateString('zh-TW');
 
             return await InteractionHelper.safeEditReply(interaction, {
                 embeds: [
                     warningEmbed(
                         '搶劫被阻擋',
-                        `${victimUser.username} 早有準備！對方擁有生效中的**防盜護罩/個人保險箱**（保護期限至：${expireDateStr}），你的搶劫失敗了。你全身而退，但什麼也沒有得到。`
+                        `${victimUser.username} 早有準備！對方擁有**個人保險箱**，你的搶劫失敗了。保險箱幫忙擋下了這次攻擊（耐久度消耗 1）。`
                     )
                 ],
             });
