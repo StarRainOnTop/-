@@ -1,13 +1,13 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
-import { getEconomyData, getMaxBankCapacity } from '../../utils/economy.js';
+import { createEmbed } from '../../utils/embeds.js';
+import { getEconomyData, getMaxBankCapacity, formatCurrency } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
-// 用於儲存冷卻中的使用者 ID 和過期時間戳
-const cooldowns = new Set();
-const COOLDOWN_SECONDS = 5; // 可在此處修改冷卻時間（秒）
+// 使用 Map 紀錄 userId => 到期時間戳 (Timestamp)
+const cooldowns = new Map();
+const COOLDOWN_SECONDS = 5; 
 
 export default {
     data: new SlashCommandBuilder()
@@ -21,10 +21,15 @@ export default {
         ),
 
     execute: withErrorHandling(async (interaction, config, client) => {
-        // 1. 在執行耗時操作前檢查冷卻狀態
-        if (cooldowns.has(interaction.user.id)) {
+        const now = Date.now();
+        const cooldownAmount = COOLDOWN_SECONDS * 1000;
+        const userCooldown = cooldowns.get(interaction.user.id);
+
+        // 1. 檢查冷卻時間是否過期
+        if (userCooldown && now < userCooldown) {
+            const timeLeft = Math.ceil((userCooldown - now) / 1000);
             return interaction.reply({
-                content: `⏳ 請等待 ${COOLDOWN_SECONDS} 秒後再查詢餘額。`,
+                content: `⏳ 請等待 ${timeLeft} 秒後再查詢餘額。`,
                 ephemeral: true
             });
         }
@@ -32,19 +37,16 @@ export default {
         const deferred = await InteractionHelper.safeDefer(interaction);
         if (!deferred) return;
 
-        // 2. 將使用者加入冷卻，並設定計時器在指定時間後移除
-        cooldowns.add(interaction.user.id);
-        setTimeout(() => {
-            cooldowns.delete(interaction.user.id);
-        }, COOLDOWN_SECONDS * 1000);
+        // 2. 設置冷卻時間戳
+        cooldowns.set(interaction.user.id, now + cooldownAmount);
+        // 定時清理過期紀錄，避免 Map 無限膨脹
+        setTimeout(() => cooldowns.delete(interaction.user.id), cooldownAmount);
 
         const userOption = interaction.options.getUser("user");
         const targetUser = userOption || interaction.user;
         const guildId = interaction.guildId;
 
-        logger.info(`[ECONOMY] Balance check - userOption: ${userOption?.id || 'null'}, targetUser: ${targetUser.id}, guildId: ${guildId}, isPrefix: ${!!interaction._commandStartTime}`);
-
-        logger.debug(`[ECONOMY] Balance check for ${targetUser.id}`, { userId: targetUser.id, guildId });
+        logger.info(`[ECONOMY] Balance check - targetUser: ${targetUser.id}, guildId: ${guildId}`);
 
         if (targetUser.bot) {
             throw createError(
@@ -56,8 +58,6 @@ export default {
 
         const userData = await getEconomyData(client, guildId, targetUser.id);
 
-        logger.info(`[ECONOMY] Economy data retrieved - userData:`, userData);
-
         if (!userData) {
             throw createError(
                 "Failed to load economy data",
@@ -68,34 +68,33 @@ export default {
         }
 
         const maxBank = getMaxBankCapacity(userData);
-
         const wallet = typeof userData.wallet === 'number' ? userData.wallet : 0;
         const bank = typeof userData.bank === 'number' ? userData.bank : 0;
 
         const embed = createEmbed({
-            title: `${targetUser.username} 的餘額`,
-            description: `這是 ${targetUser.username} 當前的財務狀況。`,
+            title: `💰 ${targetUser.username} 的財務狀況`,
+            description: `這是 ${targetUser} 當前的帳戶餘額資訊。`,
         })
             .addFields(
                 {
                     name: "💵 錢包 (Cash)",
-                    value: `$${wallet.toLocaleString()}`,
+                    value: formatCurrency(wallet),
                     inline: true,
                 },
                 {
                     name: "🏦 銀行 (Bank)",
-                    value: `$${bank.toLocaleString()} / ${maxBank.toLocaleString()}`,
+                    value: `${formatCurrency(bank)} / ${formatCurrency(maxBank)}`,
                     inline: true,
                 },
                 {
-                    name: "💰 總計 (Total)",
-                    value: `$${(wallet + bank).toLocaleString()}`,
+                    name: "📊 總計 (Total)",
+                    value: formatCurrency(wallet + bank),
                     inline: true,
                 }
             )
             .setFooter({
                 text: `由 ${interaction.user.tag} 請求`,
-                iconURL: interaction.user.displayAvatarURL(),
+                iconURL: interaction.user.displayAvatarURL({ dynamic: true }),
             });
 
         logger.info(`[ECONOMY] Balance retrieved`, { userId: targetUser.id, wallet, bank });
