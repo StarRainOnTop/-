@@ -16,7 +16,7 @@ const PREMIUM_BONUS_PERCENTAGE = 0.1;
 export default {
     data: new SlashCommandBuilder()
         .setName('daily')
-        .setDescription('領取你的每日現金獎勵（基礎 $100，超過 24 小時未領即斷簽重置）'),
+        .setDescription('領取你的每日現金獎勵（基礎 $100，每 2 天 +$50，每 7 天倍數再送大獎）'),
 
     execute: withErrorHandling(async (interaction, config, client) => {
         const deferred = await InteractionHelper.safeDefer(interaction);
@@ -52,25 +52,34 @@ export default {
             );
         }
 
-        // 📈 連續簽到 (Streak) 計算：超過 24 小時沒領（即 now - lastDaily 超過 48 小時）就重置
-        // 因為領取間隔是 24 小時冷卻，所以允許的區間是：冷卻時間 (24h) + 容許窗 (24h) = 48h 內必須按下
-        // 也就是說：上次領完後，如果過了 48 小時以上（等於超過 24 小時沒在冷卻好時領），就會斷簽！
-        const ALLOWED_WINDOW = DAILY_COOLDOWN + STREAK_RESET_WINDOW; // 48 小時
+        // 📈 連續簽到 (Streak) 計算：超過 24 小時沒領即斷簽重置為 1
+        const ALLOWED_WINDOW = DAILY_COOLDOWN + STREAK_RESET_WINDOW; // 48 小時內必須按
         let currentStreak = userData.dailyStreak || 0;
         
         if (lastDaily === 0 || now - lastDaily <= ALLOWED_WINDOW) {
             currentStreak += 1; // 準時接續領取，天數 +1
         } else {
-            currentStreak = 1; // 超過 24 小時沒領（總間隔超過 48h），斷簽重置回 1，金額回歸 $100
+            currentStreak = 1; // 超過時間斷簽，重置回 1，金額回歸 $100
         }
 
-        // 計算連續獎勵：每 2 天額外 +$50
+        // 1. 常規每 2 天 +$50 獎勵
         const streakBonus = Math.floor((currentStreak - 1) / 2) * 50;
+
+        // 2. 每 7 天里程碑動態加碼獎勵 (7天+$100, 14天+$200, 21天+$300...)
+        let milestoneBonus = 0;
+        let milestoneMessage = "";
+
+        if (currentStreak > 0 && currentStreak % 7 === 0) {
+            const weeks = currentStreak / 7;
+            milestoneBonus = weeks * 100;
+            milestoneMessage = `\n🏆 **【第 ${currentStreak} 天里程碑大獎】**：額外獎勵 +$${milestoneBonus.toLocaleString()}！`;
+        }
 
         const guildConfig = await getGuildConfig(client, guildId);
         const PREMIUM_ROLE_ID = guildConfig.premiumRoleId;
 
-        let earned = BASE_DAILY_AMOUNT + streakBonus;
+        // 總獲得金額 = 基礎 $100 + 每 2 天加成 + 7天倍數里程碑大獎
+        let earned = BASE_DAILY_AMOUNT + streakBonus + milestoneBonus;
         let bonusMessage = "";
         let hasPremiumRole = false;
 
@@ -88,9 +97,12 @@ export default {
         }
 
         if (streakBonus > 0) {
-            bonusMessage += `\n🔥 **連續簽到獎勵 (第 ${currentStreak} 天)：** +$${streakBonus.toLocaleString()}`;
-        } else {
-            bonusMessage += `\n💡 提示：連續領取每 2 天額外 +$50！`;
+            bonusMessage += `\n🔥 **連續簽到獎勵：** +$${streakBonus.toLocaleString()}`;
+        }
+
+        // 拼上里程碑大獎訊息
+        if (milestoneMessage) {
+            bonusMessage += milestoneMessage;
         }
 
         userData.wallet = (userData.wallet || 0) + earned;
@@ -106,6 +118,7 @@ export default {
             guildId,
             amount: earned,
             streak: currentStreak,
+            milestone: milestoneBonus,
             newWallet: userData.wallet,
             hasPremium: hasPremiumRole,
             timestamp: new Date().toISOString()
@@ -135,7 +148,7 @@ export default {
 
         await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
 
-        // ⏰ 24 小時後觸發提醒：如果玩家在冷卻結束後 24 小時內沒回來領（即超過 48 小時沒互動），就不發送私訊
+        // ⏰ 24 小時後觸發提醒（超過 48 小時沒互動即斷簽，不發送私訊）
         setTimeout(async () => {
             try {
                 const latestData = await getEconomyData(client, guildId, userId);
@@ -145,9 +158,8 @@ export default {
                 }
 
                 const currentTime = Date.now();
-                // 如果當前時間已經超過「領取時間 + 48小時」（代表過了 24h 冷卻又超過 24h 沒領），直接不發 DM
                 if (currentTime > claimTimestamp + ALLOWED_WINDOW) {
-                    return;
+                    return; // 超過時間未領（已斷簽），不發送私訊打擾
                 }
 
                 if (latestData.reminderSent) {
