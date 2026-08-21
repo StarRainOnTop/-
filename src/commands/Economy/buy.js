@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder } from 'discord.js';
 import { successEmbed } from '../../utils/embeds.js';
 import { getItemById, validatePurchase } from '../../config/shop/items.js';
 import { getCurrentPrice } from '../../config/shop/index.js';
@@ -32,7 +32,7 @@ export default {
 
         const userId = interaction.user.id;
         const guildId = interaction.guildId;
-        const itemId = interaction.options.getString("item_id").toLowerCase();
+        const itemId = interaction.options.getString("item_id").trim().toLowerCase();
         const quantity = interaction.options.getInteger("quantity") || 1;
 
         const item = getItemById(itemId);
@@ -46,16 +46,16 @@ export default {
             );
         }
 
-        if (quantity < 1) {
+        const userData = await getEconomyData(client, guildId, userId);
+
+        if (!userData) {
             throw createError(
-                "Invalid quantity",
-                ErrorTypes.VALIDATION,
-                "您必須購買 1 個或以上的數量。",
-                { quantity }
+                "Failed to load economy data",
+                ErrorTypes.DATABASE,
+                "無法載入您的經濟數據，請稍後再試。",
+                { userId, guildId }
             );
         }
-
-        const userData = await getEconomyData(client, guildId, userId);
 
         // 確保資料庫結構完整
         userData.inventory = userData.inventory || {};
@@ -76,20 +76,20 @@ export default {
         const totalCost = getCurrentPrice(itemId, { quantity, userData });
 
         // 3. 檢查現金餘額
-        if (userData.wallet < totalCost) {
+        if ((userData.wallet || 0) < totalCost) {
             throw createError(
                 "Insufficient funds",
                 ErrorTypes.VALIDATION,
-                `您需要 **$${totalCost.toLocaleString()}** 來購買 ${quantity} 個 **${item.name}**，但您的錢包裡只有 **$${userData.wallet.toLocaleString()}** 現金。`,
+                `您需要 **$${totalCost.toLocaleString()}** 來購買 ${quantity} 個 **${item.name}**，但您的錢包裡只有 **$${(userData.wallet || 0).toLocaleString()}** 現金。`,
                 { required: totalCost, current: userData.wallet, itemId, quantity }
             );
         }
 
-        const guildConfig = await getGuildConfig(client, guildId);
+        const guildConfig = (await getGuildConfig(client, guildId)) || {};
         const PREMIUM_ROLE_ID = guildConfig.premiumRoleId;
 
         // 身分組特別驗證
-        if (item.type === "role" && itemId === "premium_role") {
+        if (item.type === "role" || itemId === "premium_role") {
             if (!PREMIUM_ROLE_ID) {
                 throw createError(
                     "Premium role not configured",
@@ -121,12 +121,13 @@ export default {
 
         let successDescription = `您已成功以 **$${totalCost.toLocaleString()}** 購買了 ${quantity} 個 **${item.name}**！`;
 
-        // 根據商品類型處理發貨與生效邏輯
-        if (item.type === "role" && itemId === "premium_role") {
+        // 4. 根據商品類型處理發貨與生效邏輯
+        if (item.type === "role" || itemId === "premium_role") {
             const member = interaction.member;
             const role = interaction.guild.roles.cache.get(PREMIUM_ROLE_ID);
 
             if (!role) {
+                userData.wallet += totalCost; // 退款
                 throw createError(
                     "Role not found",
                     ErrorTypes.CONFIGURATION,
@@ -136,7 +137,7 @@ export default {
             }
 
             try {
-                await member.roles.add(role, `購買身分組：${item.name}`);
+                await member.roles.add(role, `商店購買身分組：${item.name}`);
                 successDescription += `\n\n**👑 身分組 ${role.toString()} 已經發放給您了！**`;
             } catch (roleError) {
                 userData.wallet += totalCost; // 退款
@@ -154,35 +155,36 @@ export default {
             const currentLevel = userData.upgrades[itemId];
             successDescription += `\n\n**✨ 您的 ${item.name} 已提升至 Lv.${currentLevel}！**`;
         } else if (item.id === "personal_safe" || item.effect?.type === "robbery_protection") {
-            // 處理 7 天防盜護罩時效
+            // 處理防盜護罩時效（支援時間疊加）
             userData.inventory[itemId] = (userData.inventory[itemId] || 0) + quantity;
             const durationMs = (item.effect?.durationDays || 7) * 24 * 60 * 60 * 1000 * quantity;
             const now = Date.now();
             const currentShield = (userData.shieldExpiresAt && userData.shieldExpiresAt > now) ? userData.shieldExpiresAt : now;
-            
+
             userData.shieldExpiresAt = currentShield + durationMs;
-            const expireDateStr = new Date(userData.shieldExpiresAt).toLocaleDateString('zh-TW');
-            
-            successDescription += `\n\n**🛡️ 防盜護罩已生效！保護期限至：${expireDateStr}**`;
-        } else if (item.type === "consumable" || item.type === "tool") {
+            const expireTimestamp = Math.floor(userData.shieldExpiresAt / 1000);
+
+            successDescription += `\n\n**🛡️ 防盜護罩已生效！保護期限至：<t:${expireTimestamp}:f>（<t:${expireTimestamp}:R>）**`;
+        } else {
+            // 一般道具或工具
             userData.inventory[itemId] = (userData.inventory[itemId] || 0) + quantity;
             if (item.type === "tool") {
                 successDescription += `\n\n**🛠️ ${item.name} 已新增至您的背包！**`;
+            } else {
+                successDescription += `\n\n**🎒 ${item.name} 已新增至您的背包！**`;
             }
         }
 
-        // 儲存更新後的玩家資料
+        // 5. 儲存更新後的玩家資料
         await setEconomyData(client, guildId, userId, userData);
 
-        const embed = successEmbed(
-            "💰 購買成功",
-            successDescription,
-        ).addFields({
-            name: "新餘額",
-            value: `$${userData.wallet.toLocaleString()}`,
-            inline: true,
-        });
+        const embed = successEmbed("💰 購買成功", successDescription)
+            .addFields({
+                name: "新現金餘額",
+                value: `$${userData.wallet.toLocaleString()}`,
+                inline: true,
+            });
 
-        await InteractionHelper.safeEditReply(interaction, { embeds: [embed], flags: [MessageFlags.Ephemeral] });
+        await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
     }, { command: 'buy' })
 };
