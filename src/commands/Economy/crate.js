@@ -142,8 +142,8 @@ export default {
                                 }, ONE_DAY_MS);
                             }
                         } else {
-                            // 💡 重複獲得身分組的保底補償機制：轉化為 $20,000 現金
-                            const compensation = 20000;
+                            // 💡 重複獲得身分組的保底補償機制：轉化為 $3,500 現金
+                            const compensation = 3500;
                             userData.wallet += compensation;
                             totalCashWon += compensation;
                             prizeRecord.name += ` (已擁有，折現 +$${compensation.toLocaleString()})`;
