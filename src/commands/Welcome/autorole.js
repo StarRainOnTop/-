@@ -60,13 +60,7 @@ export default {
         if (subcommand === 'add') {
             const role = options.getRole('role');
 
-            const guildConfig = await getGuildConfig(client, guild.id);
-            const verificationEnabled = Boolean(guildConfig.verification?.enabled);
-            const autoVerifyEnabled = Boolean(guildConfig.verification?.autoVerify?.enabled);
-
-            if (verificationEnabled || autoVerifyEnabled) {
-                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You cannot add AutoRole while the verification system or AutoVerify is enabled. Disable those first.' });
-            }
+            // 已經移除原本會檢查並阻擋驗證系統 / AutoVerify 的限制程式碼
             
             if (role.position >= guild.members.me.roles.highest.position) {
                 logger.warn(`[Autorole] User ${interaction.user.tag} tried to add role ${role.name} (${role.id}) higher than bot's highest role in ${guild.name}`);
@@ -148,7 +142,7 @@ export default {
 
                 if (autoRoles.length === 0) {
                     return InteractionHelper.safeEditReply(interaction, {
-                        embeds: [createAutoroleInfoEmbed(`ℹ️ No roles are set to be auto-assigned.${conflictSummary ? `\n\n⚠️ Setup blockers:\n${conflictSummary}` : ''}`)],
+                        embeds: [createAutoroleInfoEmbed(`ℹ️ No roles are set to be auto-assigned.${conflictSummary ? `\n\n⚠️ Info (Systems active):\n${conflictSummary}` : ''}`)],
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -176,7 +170,7 @@ export default {
 
                 if (validRoles.length === 0) {
                     return InteractionHelper.safeEditReply(interaction, {
-                        embeds: [createAutoroleInfoEmbed(`ℹ️ No valid auto-roles found. Any invalid roles have been removed.${conflictSummary ? `\n\n⚠️ Setup blockers:\n${conflictSummary}` : ''}`)],
+                        embeds: [createAutoroleInfoEmbed(`ℹ️ No valid auto-roles found. Any invalid roles have been removed.${conflictSummary ? `\n\n⚠️ Info (Systems active):\n${conflictSummary}` : ''}`)],
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -186,7 +180,7 @@ export default {
                 const embed = new EmbedBuilder()
                     .setColor(getColor('info'))
                     .setTitle('Auto-Assigned Roles')
-                    .setDescription(`${roleMentions}${conflictSummary ? `\n\n⚠️ Setup blockers:\n${conflictSummary}` : ''}`)
+                    .setDescription(`${roleMentions}${conflictSummary ? `\n\n⚠️ Info (Systems active):\n${conflictSummary}` : ''}`)
                     .setFooter({ text: `Total configured auto-roles: ${validRoles.length}` });
 
                 await InteractionHelper.safeEditReply(interaction, {
