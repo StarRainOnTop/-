@@ -15,71 +15,85 @@ const DAILY_AMOUNT = ECONOMY_CONFIG.dailyAmount || 100;
 const WORK_MIN = ECONOMY_CONFIG.workMin || 10;
 const WORK_MAX = ECONOMY_CONFIG.workMax || 100;
 const COOLDOWNS = ECONOMY_CONFIG.cooldowns || {
-daily: 24 * 60 * 60 * 1000,
-work: 60 * 60 * 1000,
-crime: 2 * 60 * 60 * 1000,
-rob: 4 * 60 * 60 * 1000,
+    daily: 24 * 60 * 60 * 1000,
+    work: 60 * 60 * 1000,
+    crime: 2 * 60 * 60 * 1000,
+    rob: 4 * 60 * 60 * 1000,
 };
 
 export function getEconomyKey(guildId, userId) {
     const validGuildId = validateDiscordId(guildId, 'guildId');
     const validUserId = validateDiscordId(userId, 'userId');
-    
+
     if (!validGuildId || !validUserId) {
-        throw new Error('Invalid guild ID or user ID');
+        throw new Error('無效的 Guild ID 或 User ID');
     }
-    
+
     return getEconomyStorageKey(validGuildId, validUserId);
 }
 
 export function getMaxBankCapacity(userData) {
     if (!userData) return BASE_BANK_CAPACITY;
-    
+
     const bankLevel = userData.bankLevel || 0;
     let capacity = BASE_BANK_CAPACITY + (bankLevel * BANK_CAPACITY_PER_LEVEL);
 
     const upgrades = userData.upgrades || {};
     const inventory = userData.inventory || {};
 
-    if (upgrades['bank_upgrade_1']) {
-        capacity = Math.floor(capacity * 1.5);
+    // 處理銀行升級倍率
+    const bankUpgradeLevel = upgrades['bank_upgrade_1'] || upgrades['bank_upgrade'] || 0;
+    if (bankUpgradeLevel > 0) {
+        capacity = Math.floor(capacity * (1 + (bankUpgradeLevel * 0.5)));
     }
 
+    // 處理道具容量疊加 (例如銀行券)
     const bankNotes = inventory['bank_note'] || 0;
     capacity += (bankNotes * 10000);
-    
+
     return capacity;
 }
 
 export function formatCurrency(amount) {
     const currencyName = ECONOMY_CONFIG.currency?.name || 'coins';
-    return `${amount.toLocaleString()} ${currencyName}`;
+    return `${(amount || 0).toLocaleString()} ${currencyName}`;
 }
 
 export async function getEconomyData(client, guildId, userId) {
     try {
         if (!client.db || typeof client.db.get !== 'function') {
-            throw new Error('Database not available');
+            throw new Error('資料庫無法使用');
         }
 
         const key = getEconomyKey(guildId, userId);
         const data = await client.db.get(key, {});
         const defaults = {
             ...DEFAULT_ECONOMY_DATA,
-            wallet: ECONOMY_CONFIG.startingBalance ?? DEFAULT_ECONOMY_DATA.wallet,
+            wallet: ECONOMY_CONFIG.startingBalance ?? DEFAULT_ECONOMY_DATA?.wallet ?? 1000,
+            bank: 0,
+            inventory: {},
+            upgrades: {},
+            shieldExpiresAt: 0,
         };
-        
+
         return normalizeEconomyData(data, defaults);
     } catch (error) {
-        logger.error(`Error getting economy data for user ${userId}`, error);
-        return normalizeEconomyData({}, DEFAULT_ECONOMY_DATA);
+        logger.error(`取得使用者 ${userId} 經濟資料時發生錯誤`, error);
+        return normalizeEconomyData({}, {
+            ...DEFAULT_ECONOMY_DATA,
+            wallet: 0,
+            bank: 0,
+            inventory: {},
+            upgrades: {},
+            shieldExpiresAt: 0,
+        });
     }
 }
 
 export async function setEconomyData(client, guildId, userId, data) {
     try {
         if (!client.db || typeof client.db.set !== 'function') {
-            throw new Error('Database not available');
+            throw new Error('資料庫無法使用');
         }
 
         const key = getEconomyKey(guildId, userId);
@@ -87,26 +101,26 @@ export async function setEconomyData(client, guildId, userId, data) {
         await client.db.set(key, normalized);
         return true;
     } catch (error) {
-        logger.error(`Error saving economy data for user ${userId}`, error);
+        logger.error(`儲存使用者 ${userId} 經濟資料時發生錯誤`, error);
         return false;
     }
 }
 
 export async function updateBalance(client, guildId, userId, options = {}) {
     const data = await getEconomyData(client, guildId, userId);
-    
+
     if (options.wallet !== undefined) {
         data.wallet = Math.max(0, (data.wallet || 0) + options.wallet);
     }
-    
+
     if (options.bank !== undefined) {
         const maxBank = getMaxBankCapacity(data);
         data.bank = Math.min(Math.max(0, (data.bank || 0) + options.bank), maxBank);
     }
-    
+
     if (options.xp !== undefined) {
         data.xp = Math.max(0, (data.xp || 0) + options.xp);
-        
+
         const xpNeeded = Math.floor(5 * Math.pow(data.level || 1, 2) + 50 * (data.level || 1) + 100);
         if (data.xp >= xpNeeded) {
             data.xp -= xpNeeded;
@@ -114,17 +128,18 @@ export async function updateBalance(client, guildId, userId, options = {}) {
             data.leveledUp = true;
         }
     }
-    
+
     await setEconomyData(client, guildId, userId, data);
     return data;
 }
 
 export function checkCooldown(userData, action) {
     const cooldownTime = COOLDOWNS[action] || 0;
-    const lastUsed = userData[`last${action.charAt(0).toUpperCase() + action.slice(1)}`] || 0;
+    const actionKey = `last${action.charAt(0).toUpperCase() + action.slice(1)}`;
+    const lastUsed = userData ? (userData[actionKey] || 0) : 0;
     const now = Date.now();
     const remaining = Math.max(0, (lastUsed + cooldownTime) - now);
-    
+
     return {
         onCooldown: remaining > 0,
         remaining,
@@ -133,77 +148,83 @@ export function checkCooldown(userData, action) {
 }
 
 function formatCooldown(ms) {
-    if (ms < 1000) return 'now';
-    
+    if (ms <= 0) return '現在';
+
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
-    
-    if (days > 0) return `${days}d ${hours % 24}h`;
-    if (hours > 0) return `${hours}h ${minutes % 60}m`;
-    if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
-    return `${seconds}s`;
+
+    if (days > 0) return `${days}天 ${hours % 24}小時`;
+    if (hours > 0) return `${hours}小時 ${minutes % 60}分`;
+    if (minutes > 0) return `${minutes}分 ${seconds % 60}秒`;
+    return `${seconds}秒`;
 }
 
 export function getWorkReward() {
     const amount = Math.floor(Math.random() * (WORK_MAX - WORK_MIN + 1)) + WORK_MIN;
     const jobs = [
-        'worked at a fast food restaurant',
-        'worked as a programmer',
-        'worked as a construction worker',
-        'worked as a doctor',
-        'worked as a streamer',
-        'worked as a YouTuber',
-        'worked as a teacher',
-        'worked as a cashier',
-        'worked as a delivery driver',
-        'worked as a freelancer'
+        '在快餐店打工',
+        '擔任軟體工程師',
+        '在建築工地工作',
+        '擔任醫生診察病人',
+        '進行實況直播',
+        '製作 YouTube 影片',
+        '在學校教學',
+        '擔任收銀員',
+        '送外賣',
+        '接案做自由職業'
     ];
-    
+
     const job = jobs[Math.floor(Math.random() * jobs.length)];
-    
+
     return {
         amount,
         job,
-        message: `You ${job} and earned ${formatCurrency(amount)}!`
+        message: `你${job}，賺取了 ${formatCurrency(amount)}！`
     };
 }
 
 export function getCrimeOutcome() {
+    const amountRand = Math.floor(Math.random() * 200) + 50;
+    const pickpocketRand = Math.floor(Math.random() * 100) + 20;
+    const hackRand = Math.floor(Math.random() * 150) + 30;
+    const fineRand1 = Math.floor(Math.random() * 100) + 50;
+    const fineRand2 = Math.floor(Math.random() * 150) + 50;
+
     const outcomes = [
         {
             success: true,
-            amount: Math.floor(Math.random() * 200) + 50,
-            message: 'You successfully robbed a bank and got away with {amount}!' 
+            amount: amountRand,
+            message: `你成功搶劫了銀行，帶走了 ${formatCurrency(amountRand)}！`
         },
         {
             success: true,
-            amount: Math.floor(Math.random() * 100) + 20,
-            message: 'You pickpocketed someone and stole {amount}!' 
+            amount: pickpocketRand,
+            message: `你扒竊了路人，偷到 ${formatCurrency(pickpocketRand)}！`
         },
         {
             success: true,
-            amount: Math.floor(Math.random() * 150) + 30,
-            message: 'You hacked into a bank account and transferred {amount} to yourself!' 
+            amount: hackRand,
+            message: `你入侵了銀行帳戶，轉轉移了 ${formatCurrency(hackRand)} 到自己名下！`
         },
         {
             success: false,
-            fine: Math.floor(Math.random() * 100) + 50,
-            message: 'You got caught and had to pay a fine of {fine}!' 
+            fine: fineRand1,
+            message: `你當場被捕，被迫支付了 ${formatCurrency(fineRand1)} 的罰款！`
         },
         {
             success: false,
-            fine: Math.floor(Math.random() * 150) + 50,
-            message: 'The police caught you! You paid {fine} to get out of jail.' 
+            fine: fineRand2,
+            message: `警察抓到了你！你支付了 ${formatCurrency(fineRand2)} 才保釋出來。`
         },
         {
             success: false,
             fine: 0,
-            message: 'Your attempt failed, but you managed to escape!' 
+            message: '你的犯罪計畫失敗了，幸好你成功逃脫！'
         }
     ];
-    
+
     return outcomes[Math.floor(Math.random() * outcomes.length)];
 }
 
@@ -212,31 +233,31 @@ export function getRobOutcome(targetBalance) {
         return {
             success: false,
             amount: 0,
-            message: 'The target has no money to steal!'
+            message: '目標身上沒有任何現金可以搶劫！'
         };
     }
-    
-const success = Math.random() > 0.4;
-    
+
+    const success = Math.random() > 0.4;
+
     if (success) {
         const amount = Math.min(
-Math.floor(Math.random() * (targetBalance * 0.3)) + 1,
+            Math.floor(Math.random() * (targetBalance * 0.3)) + 1,
             targetBalance
         );
-        
+
         return {
             success: true,
             amount,
-            message: `You successfully robbed them and got away with {amount}!`
+            message: `你成功搶劫了對方，搶走 ${formatCurrency(amount)}！`
         };
     } else {
         const fine = Math.floor(Math.random() * 200) + 100;
-        
+
         return {
             success: false,
             amount: 0,
             fine,
-            message: `You got caught! You had to pay a fine of {fine}.`
+            message: `你搶劫失敗被抓到了！支付了 ${formatCurrency(fine)} 的罰金。`
         };
     }
 }
@@ -249,18 +270,18 @@ export const addMoney = wrapServiceBoundary(async function addMoney(client, guil
     const validAmount = validateNumber(amount, 'amount');
     if (validAmount === null || validAmount <= 0) {
         throw createError(
-            'Invalid amount',
+            '金額無效',
             ErrorTypes.VALIDATION,
-            'Amount must be a positive number.',
+            '金額必須為正數。',
             { guildId, userId, amount, operation: 'addMoney' }
         );
     }
 
     if (type !== 'wallet' && type !== 'bank') {
         throw createError(
-            'Invalid money type',
+            '貨幣類型無效',
             ErrorTypes.VALIDATION,
-            'Type must be "wallet" or "bank".',
+            '類型必須為 "wallet" 或 "bank"。',
             { guildId, userId, type, operation: 'addMoney' }
         );
     }
@@ -271,9 +292,9 @@ export const addMoney = wrapServiceBoundary(async function addMoney(client, guil
         const maxBank = getMaxBankCapacity(userData);
         if ((userData.bank || 0) + validAmount > maxBank) {
             throw createError(
-                'Bank capacity exceeded',
+                '超出銀行容量上限',
                 ErrorTypes.VALIDATION,
-                `Bank capacity exceeded. Current: ${userData.bank || 0}, Max: ${maxBank}.`,
+                `銀行儲存空間不足。目前：${userData.bank || 0}，上限：${maxBank}。`,
                 { guildId, userId, current: userData.bank || 0, max: maxBank, operation: 'addMoney' }
             );
         }
@@ -291,25 +312,25 @@ export const addMoney = wrapServiceBoundary(async function addMoney(client, guil
 }, {
     service: 'economy',
     operation: 'addMoney',
-    userMessage: 'Failed to add money. Please try again.',
+    userMessage: '增加金額失敗，請稍後再試。',
 });
 
 export const removeMoney = wrapServiceBoundary(async function removeMoney(client, guildId, userId, amount, type = 'wallet') {
     const validAmount = validateNumber(amount, 'amount');
     if (validAmount === null || validAmount <= 0) {
         throw createError(
-            'Invalid amount',
+            '金額無效',
             ErrorTypes.VALIDATION,
-            'Amount must be a positive number.',
+            '金額必須為正數。',
             { guildId, userId, amount, operation: 'removeMoney' }
         );
     }
 
     if (type !== 'wallet' && type !== 'bank') {
         throw createError(
-            'Invalid money type',
+            '貨幣類型無效',
             ErrorTypes.VALIDATION,
-            'Type must be "wallet" or "bank".',
+            '類型必須為 "wallet" 或 "bank"。',
             { guildId, userId, type, operation: 'removeMoney' }
         );
     }
@@ -319,9 +340,9 @@ export const removeMoney = wrapServiceBoundary(async function removeMoney(client
     if (type === 'bank') {
         if ((userData.bank || 0) < validAmount) {
             throw createError(
-                'Insufficient bank funds',
+                '銀行餘額不足',
                 ErrorTypes.VALIDATION,
-                `Insufficient funds in bank. You have ${userData.bank || 0}, need ${validAmount}.`,
+                `銀行帳戶餘額不足。目前餘額：${userData.bank || 0}，需要：${validAmount}。`,
                 { guildId, userId, current: userData.bank || 0, required: validAmount, operation: 'removeMoney' }
             );
         }
@@ -329,9 +350,9 @@ export const removeMoney = wrapServiceBoundary(async function removeMoney(client
     } else {
         if ((userData.wallet || 0) < validAmount) {
             throw createError(
-                'Insufficient wallet funds',
+                '錢包餘額不足',
                 ErrorTypes.VALIDATION,
-                `Insufficient funds in wallet. You have ${userData.wallet || 0}, need ${validAmount}.`,
+                `錢包餘額不足。目前餘額：${userData.wallet || 0}，需要：${validAmount}。`,
                 { guildId, userId, current: userData.wallet || 0, required: validAmount, operation: 'removeMoney' }
             );
         }
@@ -346,52 +367,52 @@ export const removeMoney = wrapServiceBoundary(async function removeMoney(client
 }, {
     service: 'economy',
     operation: 'removeMoney',
-    userMessage: 'Failed to remove money. Please try again.',
+    userMessage: '扣除金額失敗，請稍後再試。',
 });
 
 export function getShopInventory() {
     return [
         {
             id: 'fishing_rod',
-            name: 'Fishing Rod',
+            name: '釣魚竿',
             emoji: '🎣',
             price: 500,
-            description: 'Catch fish to sell for profit!',
+            description: '用來釣魚並出售獲利！',
             type: 'tool'
         },
         {
             id: 'hunting_rifle',
-            name: 'Hunting Rifle',
+            name: '獵槍',
             emoji: '🔫',
             price: 1000,
-            description: 'Hunt animals for meat and fur!',
+            description: '狩獵野生動物以獲取肉類與毛皮！',
             type: 'tool'
         },
         {
             id: 'laptop',
-            name: 'Laptop',
+            name: '筆記型電腦',
             emoji: '💻',
             price: 2000,
-            description: 'Work as a programmer for higher pay!',
+            description: '以程式設計師身份工作，獲取更高的薪水！',
             type: 'tool',
             workMultiplier: 1.5
         },
         {
             id: 'bank_loan',
-            name: 'Bank Loan',
+            name: '銀行拓展卡',
             emoji: '🏦',
             price: 5000,
-            description: 'Increases your bank capacity by 50,000!',
+            description: '提升你的銀行儲存容量上限 50,000！',
             type: 'upgrade',
             effect: 'bank_capacity',
             value: 50000
         },
         {
             id: 'lottery_ticket',
-            name: 'Lottery Ticket',
+            name: '彩券',
             emoji: '🎫',
             price: 100,
-            description: 'A chance to win big!',
+            description: '買一個贏得大獎的機會！',
             type: 'consumable',
             use: 'gamble'
         }
