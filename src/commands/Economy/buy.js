@@ -145,8 +145,15 @@ export default {
             }
 
             try {
+                // 一樣會正常把身分組發給玩家
                 await member.roles.add(role, `商店購買身分組：${item.name}`);
-                successDescription += `\n\n**👑 身分組 ${role.toString()} 已經發放給您了！**`;
+                
+                // 這裡精準調整顯示給玩家看的提示文字
+                if (itemId === "custom_role") {
+                    successDescription += `\n\n**👑 身分組 ${role.toString()} 已經發放給您了！**\n💬 **請透過開啟 Ticket 告訴管理員你想要的專屬名稱與顏色！**`;
+                } else {
+                    successDescription += `\n\n**👑 身分組 ${role.toString()} 已經發放給您了！**`;
+                }
             } catch (roleError) {
                 userData.wallet += totalCost; // 退款
                 await setEconomyData(client, guildId, userId, userData);
