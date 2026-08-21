@@ -6,12 +6,14 @@ import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const CRATE_PRICE = 5000; // 單抽價格
+const XP_BOOSTER_ROLE_ID = '1540410469406220358'; // ⚡ 15% 經驗加成身分組 ID
 
 // 獎品池設定
 const PRIZE_POOL = [
-    { id: 'cash_small', name: '💵 現金紅包 ($1,000)', type: 'cash', value: 1000, weight: 45, rarity: '普通' },
-    { id: 'personal_safe', name: '🛡️ 個人保險箱 (防禦次數 +1)', type: 'item', value: 1, weight: 30, rarity: '稀有' },
-    { id: 'diamond_pickaxe', name: '⛏️ 鑽石鎬', type: 'item', value: 1, weight: 15, rarity: '史詩' },
+    { id: 'cash_small', name: '💵 現金紅包 ($1,000)', type: 'cash', value: 1000, weight: 40, rarity: '普通' },
+    { id: 'personal_safe', name: '🛡️ 個人保險箱 (防禦次數 +1)', type: 'item', value: 1, weight: 28, rarity: '稀有' },
+    { id: 'xp_booster_card', name: '⚡ 15% 經驗加成卡 (24小時)', type: 'role', roleId: XP_BOOSTER_ROLE_ID, weight: 12, rarity: '稀有' },
+    { id: 'diamond_pickaxe', name: '⛏️ 鑽石鎬', type: 'item', value: 1, weight: 10, rarity: '史詩' },
     { id: 'cash_jackpot', name: '💰巨額頭獎💰 ($50,000)', type: 'cash', value: 50000, weight: 7, rarity: '傳說' },
     { id: 'golden_crown_role', name: '👑尊爵黃金皇冠👑 (專屬身分組)', type: 'role', roleId: '1540406574189649940', weight: 3, rarity: '神話' }
 ];
@@ -97,13 +99,31 @@ export default {
                 totalCashWon += prize.value;
                 userData.wallet += prize.value;
             } else if (prize.type === 'item') {
-                // 直接將對應的道具數量 +1（完美對應你的 inventory 系統）
                 userData.inventory = userData.inventory || {};
                 userData.inventory[prize.id] = (userData.inventory[prize.id] || 0) + prize.value;
             } else if (prize.type === 'role') {
                 try {
                     if (prize.roleId) {
-                        await member.roles.add(prize.roleId);
+                        // 避免重複發放時重新計算計時，如果沒有該身分組才給予
+                        if (!member.roles.cache.has(prize.roleId)) {
+                            await member.roles.add(prize.roleId);
+
+                            // ⚡ 如果抽中防呆加成卡，設定 24 小時後自動移除
+                            if (prize.roleId === XP_BOOSTER_ROLE_ID) {
+                                const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+                                setTimeout(async () => {
+                                    try {
+                                        const fetchedMember = await interaction.guild.members.fetch(userId).catch(() => null);
+                                        if (fetchedMember && fetchedMember.roles.cache.has(XP_BOOSTER_ROLE_ID)) {
+                                            await fetchedMember.roles.remove(XP_BOOSTER_ROLE_ID, 'XP Booster card expired after 24 hours');
+                                            logger.info(`[XP_BOOSTER] Removed expired XP booster role from user ${userId}`);
+                                        }
+                                    } catch (err) {
+                                        logger.error(`[XP_BOOSTER] Failed to remove expired role: ${err.message}`);
+                                    }
+                                }, ONE_DAY_MS);
+                            }
+                        }
                     }
                 } catch (err) {
                     logger.error(`[CRATE] Failed to assign role: ${err.message}`);
