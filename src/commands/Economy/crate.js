@@ -8,7 +8,10 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 const CRATE_PRICE = 5000; // 單抽價格
 const XP_BOOSTER_ROLE_ID = '1540410469406220358'; // ⚡ 15% 經驗加成身分組 ID
 
-// 獎品池設定（已調整：提高經驗加成卡權重，降低保險箱權重）
+// 📢 已設定大獎專屬廣播頻道 ID
+const ANNOUNCE_CHANNEL_ID = '1540416585553158184'; 
+
+// 獎品池設定
 const PRIZE_POOL = [
     { id: 'cash_small', name: '💵 現金紅包 ($1,000)', type: 'cash', value: 1000, weight: 60, rarity: '普通' },
     { id: 'xp_booster_card', name: '⚡ 15% 經驗加成卡 (24小時)', type: 'role', roleId: XP_BOOSTER_ROLE_ID, weight: 18, rarity: '稀有' },
@@ -87,29 +90,44 @@ export default {
             userData.bank = Math.max(0, userData.bank - remaining);
         }
 
+        // 🎰 開箱視覺動畫：顯示正在開箱的懸念感
+        await InteractionHelper.safeEditReply(interaction, {
+            embeds: [createEmbed({
+                title: '🎰 正在開啟高級抽獎箱...',
+                description: `運氣正在轉動中，祝您手氣爆棚！✨`,
+                color: 'warning'
+            })]
+        });
+
+        // 暫停 2 秒鐘製造開箱期待感
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         const results = [];
         let totalCashWon = 0;
         const member = interaction.member;
 
         for (let i = 0; i < count; i++) {
             const prize = rollCrate();
-            results.push(prize);
+            
+            // 複製一份獎品物件以避免多連抽時名稱被共用覆寫
+            const prizeRecord = { ...prize };
+            results.push(prizeRecord);
 
-            if (prize.type === 'cash') {
-                totalCashWon += prize.value;
-                userData.wallet += prize.value;
-            } else if (prize.type === 'item') {
+            if (prizeRecord.type === 'cash') {
+                totalCashWon += prizeRecord.value;
+                userData.wallet += prizeRecord.value;
+            } else if (prizeRecord.type === 'item') {
                 userData.inventory = userData.inventory || {};
-                userData.inventory[prize.id] = (userData.inventory[prize.id] || 0) + prize.value;
-            } else if (prize.type === 'role') {
+                userData.inventory[prizeRecord.id] = (userData.inventory[prizeRecord.id] || 0) + prizeRecord.value;
+            } else if (prizeRecord.type === 'role') {
                 try {
-                    if (prize.roleId) {
-                        // 避免重複發放時重新計算計時，如果沒有該身分組才給予
-                        if (!member.roles.cache.has(prize.roleId)) {
-                            await member.roles.add(prize.roleId);
+                    if (prizeRecord.roleId) {
+                        // 檢查玩家是否已經擁有該身分組
+                        if (!member.roles.cache.has(prizeRecord.roleId)) {
+                            await member.roles.add(prizeRecord.roleId);
 
-                            // ⚡ 如果抽中防呆加成卡，設定 24 小時後自動移除
-                            if (prize.roleId === XP_BOOSTER_ROLE_ID) {
+                            // ⚡ 如果是經驗加成卡，設定 24 小時後自動移除
+                            if (prizeRecord.roleId === XP_BOOSTER_ROLE_ID) {
                                 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
                                 setTimeout(async () => {
                                     try {
@@ -123,10 +141,36 @@ export default {
                                     }
                                 }, ONE_DAY_MS);
                             }
+                        } else {
+                            // 💡 重複獲得身分組的保底補償機制：轉化為 $20,000 現金
+                            const compensation = 20000;
+                            userData.wallet += compensation;
+                            totalCashWon += compensation;
+                            prizeRecord.name += ` (已擁有，折現 +$${compensation.toLocaleString()})`;
                         }
                     }
                 } catch (err) {
                     logger.error(`[CRATE] Failed to assign role: ${err.message}`);
+                }
+            }
+
+            // 📢 廣播系統：抽中傳說或神話大獎時發送到指定的公告頻道
+            if (prizeRecord.rarity === '傳說' || prizeRecord.rarity === '神話') {
+                try {
+                    const channelToAnnounce = client.channels.cache.get(ANNOUNCE_CHANNEL_ID);
+
+                    if (channelToAnnounce) {
+                        await channelToAnnounce.send({
+                            embeds: [createEmbed({
+                                title: '🎉 恭喜歐皇誕生！',
+                                description: `🔥 **${interaction.user}** 在高級抽獎箱中人品大爆發，一發入魂抽中了 **[${prizeRecord.rarity}] ${prizeRecord.name}**！`,
+                                color: 'gold',
+                                timestamp: true
+                            })]
+                        });
+                    }
+                } catch (err) {
+                    logger.error(`[CRATE] Failed to send broadcast: ${err.message}`);
                 }
             }
         }
@@ -143,7 +187,7 @@ export default {
         });
 
         if (totalCashWon > 0) {
-            embed.addFields({ name: '💰 現金回饋', value: `恭喜抽中現金共 **+$${totalCashWon.toLocaleString()}**！`, inline: false });
+            embed.addFields({ name: '💰 總現金回饋/補償', value: `本次獲得現金共 **+$${totalCashWon.toLocaleString()}**！`, inline: false });
         }
 
         embed.addFields({
