@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { createEmbed, errorEmbed, successEmbed, infoEmbed } from '../../utils/embeds.js';
-import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { getEconomyData, setEconomyData, getMaxBankCapacity } from '../../utils/economy.js';
 import { formatDuration } from '../../utils/embeds.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { logger } from '../../utils/logger.js';
@@ -51,8 +51,8 @@ export default {
         targetData.wallet = targetData.wallet || 0;
         targetData.bank = targetData.bank || 0;
         
-        // 💡 直接從玩家的資料中讀取真實的銀行上限，如果沒有才預設 100,000
-        const bankLimit = targetData.bankLimit || 100000;
+        // 💡 像 balance 一樣直接帶入 targetData 計算上限
+        const bankLimit = getMaxBankCapacity(targetData);
 
         targetData.lastInterest = targetData.lastInterest || 0;
 
@@ -115,7 +115,7 @@ export default {
                 freshData.wallet = freshData.wallet || 0;
                 freshData.bank = freshData.bank || 0;
                 
-                const freshBankLimit = freshData.bankLimit || 100000;
+                const freshBankLimit = getMaxBankCapacity(freshData);
                 freshData.lastInterest = freshData.lastInterest || 0;
 
                 // 再次驗證冷卻
@@ -133,7 +133,7 @@ export default {
                 let addedToBank = 0;
                 let addedToWallet = 0;
 
-                // 💡 核心邏輯：檢查銀行加上利息後是否會超過該玩家的專屬上限
+                // 💡 核心邏輯：檢查銀行加上利息後是否會超過上限
                 if (freshData.bank >= freshBankLimit) {
                     // 如果原本銀行就已經滿了，全數發給現金
                     freshData.wallet += earned;
