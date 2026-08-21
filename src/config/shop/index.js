@@ -122,7 +122,9 @@ export {
 };
 
 export function getCurrentPrice(itemId, { quantity = 1, userData = null } = {}) {
-    const basePrice = getItemPrice(itemId) * quantity;
+    // 傳入 userData 以支援升級項目的動態指數計價
+    const unitPrice = getItemPrice(itemId, userData);
+    const basePrice = unitPrice * quantity;
     
     let discount = 0;
     
