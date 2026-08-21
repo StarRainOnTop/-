@@ -11,7 +11,7 @@ const PICKAXE_MULTIPLIER = 1.2;
 const DIAMOND_PICKAXE_MULTIPLIER = 2.0;
 
 // 🟢 請在這裡填入你伺服器「集滿挖礦地點」的專屬身分組 ID
-const MINE_SPECIAL_ROLE_ID = '你的挖礦身分組ID數字';
+const MINE_SPECIAL_ROLE_ID = '1540058291064012902';
 
 const MINE_LOCATIONS = [
     { id: 'abandoned_lab', name: '廢棄的地下實驗室' },
@@ -41,7 +41,19 @@ export default {
         const guildId = interaction.guildId;
         const now = Date.now();
 
-        const userData = await getEconomyData(client, guildId, userId);
+        let userData = await getEconomyData(client, guildId, userId);
+        
+        // 🛡️ 防呆保護：如果玩家沒有經濟資料，自動初始化一個預設結構
+        if (!userData) {
+            userData = {
+                wallet: 0,
+                bank: 0,
+                lastMine: 0,
+                inventory: {},
+                minedLocations: {}
+            };
+        }
+
         const lastMine = userData.lastMine || 0;
         const hasDiamondPickaxe = userData.inventory?.["diamond_pickaxe"] || 0;
         const hasPickaxe = userData.inventory?.["pickaxe"] || 0;
@@ -79,7 +91,7 @@ export default {
 
         const locationObj = MINE_LOCATIONS[Math.floor(Math.random() * MINE_LOCATIONS.length)];
 
-        userData.wallet += finalEarned;
+        userData.wallet = (userData.wallet || 0) + finalEarned;
         userData.lastMine = now;
 
         // 記錄探索地點進度
