@@ -7,6 +7,8 @@ import { formatLogLine } from '../../utils/logging/logEmbeds.js';
 import { Mutex } from '../../utils/mutex.js';
 import { wrapServiceBoundary } from '../../utils/errorHandler.js';
 
+const XP_BOOSTER_ROLE_ID = '1540410469406220358'; // ⚡ 15% 經驗加成身分組 ID
+
 /**
  * Award XP to a member. Returns null when XP is skipped (disabled/invalid amount).
  * Throws on storage or unexpected failures.
@@ -22,6 +24,11 @@ export const addXp = wrapServiceBoundary(async function addXp(client, guild, mem
 
     if (!config.enabled) {
       return null;
+    }
+
+    // ⚡ 檢查成員是否有 15% 經驗加成身分組
+    if (member && member.roles && member.roles.cache.has(XP_BOOSTER_ROLE_ID)) {
+      xpToAdd = Math.round(xpToAdd * 1.15);
     }
 
     const levelData = await getUserLevelData(client, guild.id, member.user.id);
