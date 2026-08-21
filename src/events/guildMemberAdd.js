@@ -78,25 +78,27 @@ export default {
             }
         }
         
+        // ✅ 修正：改為讀取所有設定的身分組，一次性全數發放
         if (welcomeConfig?.roleIds && welcomeConfig.roleIds.length > 0) {
             const delay = welcomeConfig.autoRoleDelay || 0;
-            const singleRoleId = welcomeConfig.roleIds[0];
             
+            const assignRoles = async () => {
+                const validRoles = welcomeConfig.roleIds
+                    .map(id => guild.roles.cache.get(id))
+                    .filter(Boolean);
+
+                if (validRoles.length > 0) {
+                    await assignRolesSafely(member, validRoles);
+                }
+            };
+
             if (delay > 0) {
-                const timeout = setTimeout(async () => {
-                    const role = guild.roles.cache.get(singleRoleId);
-                    if (role) {
-                        await assignRoleSafely(member, role);
-                    }
-                }, delay * 1000);
+                const timeout = setTimeout(assignRoles, delay * 1000);
                 if (typeof timeout.unref === 'function') {
                     timeout.unref();
                 }
             } else {
-                const role = guild.roles.cache.get(singleRoleId);
-                if (role) {
-                    await assignRoleSafely(member, role);
-                }
+                await assignRoles();
             }
         }
         
@@ -189,10 +191,10 @@ async function handleVerification(member, guild, verificationConfig, client) {
     }
 }
 
-async function assignRoleSafely(member, role) {
+async function assignRolesSafely(member, roles) {
     try {
-        await member.roles.add(role);
+        await member.roles.add(roles);
     } catch (error) {
-        logger.warn(`Failed to assign role ${role.id} to member ${member.id}:`, error);
+        logger.warn(`Failed to assign auto-roles to member ${member.id}:`, error);
     }
 }
