@@ -9,7 +9,7 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('inventory')
-        .setDescription('查看你的經濟背包道具、升級項目與護罩狀態'),
+        .setDescription('查看你的經濟背包道具、升級項目與保險箱狀態'),
 
     execute: withErrorHandling(async (interaction, config, client) => {
         const deferred = await InteractionHelper.safeDefer(interaction);
@@ -33,14 +33,19 @@ export default {
 
         const inventory = userData.inventory || {};
         const upgrades = userData.upgrades || {};
-        const shieldExpiresAt = userData.shieldExpiresAt || 0;
 
-        // 1. 一般背包道具解析
+        // 1. 一般背包道具解析（包含個人保險箱，會直接顯示剩餘耐久度/數量）
         const inventoryLines = Object.entries(inventory)
             .filter(([_, quantity]) => quantity > 0)
             .map(([itemId, quantity]) => {
                 const item = shopItems.find(i => i.id === itemId);
                 const itemName = item ? item.name : itemId;
+                
+                // 如果是個人保險箱，特別標註它是防禦次數
+                if (itemId === 'personal_safe') {
+                    return `• **${itemName}** (\`${itemId}\`)：剩餘防禦次數 **${quantity}** 次`;
+                }
+                
                 return `• **${itemName}** (\`${itemId}\`)：${quantity} 個`;
             });
 
@@ -53,16 +58,16 @@ export default {
                 return `• **${itemName}** (\`${itemId}\`)：Lv.${level}`;
             });
 
-        // 3. 防護罩狀態解析
-        const isShieldActive = shieldExpiresAt > Date.now();
-        const shieldStatus = isShieldActive
-            ? `🛡️ **護罩生效中**（將於 <t:${Math.floor(shieldExpiresAt / 1000)}:R> 到期）`
-            : '❌ **無活性護罩**';
+        // 3. 保險箱防護狀態解析
+        const safeCount = inventory['personal_safe'] || 0;
+        const safeStatus = safeCount > 0
+            ? `🔒 **保險箱保護中**（剩餘可抵擋 **${safeCount}** 次搶劫）`
+            : '❌ **無保險箱保護**（容易遭到其他人搶劫，建議至商店購買）';
 
         const fields = [
             {
                 name: '🎒 持有道具',
-                value: inventoryLines.length > 0 ? inventoryLines.join('\n') : '（目前沒有任何消耗性道具）',
+                value: inventoryLines.length > 0 ? inventoryLines.join('\n') : '（目前沒有任何消耗性道具或裝備）',
                 inline: false,
             },
         ];
@@ -76,8 +81,8 @@ export default {
         }
 
         fields.push({
-            name: '🛡️ 防護罩狀態',
-            value: shieldStatus,
+            name: '🛡️ 搶劫防禦狀態',
+            value: safeStatus,
             inline: false,
         });
 
