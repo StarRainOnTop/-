@@ -115,14 +115,17 @@ export default {
         let resultEmbed;
 
         if (isSuccessful) {
-            // 計算可搶奪的現金與銀行金額
-            const walletStolen = Math.floor((victimData.wallet || 0) * ROB_WALLET_PERCENTAGE);
-            const bankStolen = Math.floor((victimData.bank || 0) * ROB_BANK_PERCENTAGE);
+            // 計算可搶奪的金額，並用 Math.min 確保不會超過受害者實際擁有的數量
+            const rawWalletStolen = Math.floor((victimData.wallet || 0) * ROB_WALLET_PERCENTAGE);
+            const rawBankStolen = Math.floor((victimData.bank || 0) * ROB_BANK_PERCENTAGE);
+            
+            const walletStolen = Math.min(rawWalletStolen, victimData.wallet || 0);
+            const bankStolen = Math.min(rawBankStolen, victimData.bank || 0);
             const totalStolen = walletStolen + bankStolen;
 
             robberData.wallet = (robberData.wallet || 0) + totalStolen;
-            victimData.wallet = (victimData.wallet || 0) - walletStolen;
-            victimData.bank = (victimData.bank || 0) - bankStolen;
+            victimData.wallet = Math.max(0, (victimData.wallet || 0) - walletStolen);
+            victimData.bank = Math.max(0, (victimData.bank || 0) - bankStolen);
 
             resultEmbed = successEmbed(
                 '搶劫成功',
