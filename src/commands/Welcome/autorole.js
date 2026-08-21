@@ -1,5 +1,5 @@
 import { getColor } from '../../config/bot.js';
-import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getWelcomeConfig, updateWelcomeConfig } from '../../utils/database.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -54,7 +54,7 @@ export default {
             return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the **Manage Server** permission to use `/autorole`.' });
         }
 
-    const { options, guild, client } = interaction;
+        const { options, guild, client } = interaction;
         const subcommand = options.getSubcommand();
 
         if (subcommand === 'add') {
@@ -75,25 +75,27 @@ export default {
 
             try {
                 const config = await getWelcomeConfig(client, guild.id);
-                const existingRoles = config.roleIds || [];
-                const currentRoleId = existingRoles[0] || null;
+                const existingRoles = Array.isArray(config.roleIds) ? config.roleIds : [];
 
-                if (currentRoleId === role.id) {
+                if (existingRoles.includes(role.id)) {
                     logger.info(`[Autorole] User ${interaction.user.tag} tried to add duplicate role ${role.name} (${role.id}) in ${guild.name}`);
                     return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `The role ${role} is already set to be auto-assigned.` });
                 }
 
+                // 限制最多設定 10 個自動身分組（可自行調整上限）
+                if (existingRoles.length >= 10) {
+                    return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'You can only have a maximum of 10 auto-assigned roles.' });
+                }
+
+                const updatedRoles = [...existingRoles, role.id];
+
                 await updateWelcomeConfig(client, guild.id, {
-                    roleIds: [role.id]
+                    roleIds: updatedRoles
                 });
 
-                logger.info(`[Autorole] Set single auto-role to ${role.name} (${role.id}) in ${guild.name} by ${interaction.user.tag}`);
+                logger.info(`[Autorole] Added auto-role ${role.name} (${role.id}) in ${guild.name} by ${interaction.user.tag}`);
                 await InteractionHelper.safeEditReply(interaction, {
-                    embeds: [createAutoroleInfoEmbed(
-                        currentRoleId
-                            ? `✅ Auto-role updated to ${role}. Only one auto-role is allowed.`
-                            : `✅ Auto-role set to ${role}.`
-                    )],
+                    embeds: [createAutoroleInfoEmbed(`✅ Added ${role} to auto-assigned roles. Total auto-roles: **${updatedRoles.length}**`)],
                     flags: MessageFlags.Ephemeral
                 });
             } catch (error) {
@@ -107,7 +109,7 @@ export default {
 
             try {
                 const config = await getWelcomeConfig(client, guild.id);
-                const existingRoles = config.roleIds || [];
+                const existingRoles = Array.isArray(config.roleIds) ? config.roleIds : [];
                 
                 if (!existingRoles.includes(role.id)) {
                     logger.info(`[Autorole] User ${interaction.user.tag} tried to remove non-existent role ${role.name} (${role.id}) in ${guild.name}`);
@@ -129,7 +131,7 @@ export default {
                 logger.error(`[Autorole] Failed to remove role for guild ${guild.id}:`, error);
                 await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while removing the role. Please try again.' });
             }
-        }
+        } 
         
         else if (subcommand === 'list') {
             try {
@@ -144,17 +146,9 @@ export default {
                 const config = await getWelcomeConfig(client, guild.id);
                 const autoRoles = Array.isArray(config.roleIds) ? config.roleIds : [];
 
-                const singleRoleIds = autoRoles.length > 1 ? [autoRoles[0]] : autoRoles;
-                if (singleRoleIds.length !== autoRoles.length) {
-                    await updateWelcomeConfig(client, guild.id, {
-                        roleIds: singleRoleIds
-                    });
-                    logger.info(`[Autorole] Trimmed auto-role list to one role in ${interaction.guild.name}`);
-                }
-
-                if (singleRoleIds.length === 0) {
+                if (autoRoles.length === 0) {
                     return InteractionHelper.safeEditReply(interaction, {
-                        embeds: [createAutoroleInfoEmbed(`ℹ️ No role is set to be auto-assigned.${conflictSummary ?`\n\n⚠️ Setup blockers:\n${conflictSummary}`: ''}`)],
+                        embeds: [createAutoroleInfoEmbed(`ℹ️ No roles are set to be auto-assigned.${conflictSummary ? `\n\n⚠️ Setup blockers:\n${conflictSummary}` : ''}`)],
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -163,7 +157,7 @@ export default {
                 const validRoles = [];
                 const invalidRoleIds = [];
                 
-                for (const roleId of singleRoleIds) {
+                for (const roleId of autoRoles) {
                     const role = roles.get(roleId);
                     if (role) {
                         validRoles.push(role);
@@ -174,7 +168,7 @@ export default {
 
                 if (invalidRoleIds.length > 0) {
                     logger.info(`[Autorole] Cleaning up ${invalidRoleIds.length} invalid role(s) from guild ${interaction.guild.name}`);
-                    const updatedRoles = singleRoleIds.filter(id => !invalidRoleIds.includes(id));
+                    const updatedRoles = autoRoles.filter(id => !invalidRoleIds.includes(id));
                     await updateWelcomeConfig(client, guild.id, {
                         roleIds: updatedRoles
                     });
@@ -182,16 +176,18 @@ export default {
 
                 if (validRoles.length === 0) {
                     return InteractionHelper.safeEditReply(interaction, {
-                        embeds: [createAutoroleInfoEmbed(`ℹ️ No valid auto-role found. Any invalid role has been removed.${conflictSummary ?`\n\n⚠️ Setup blockers:\n${conflictSummary}`: ''}`)],
+                        embeds: [createAutoroleInfoEmbed(`ℹ️ No valid auto-roles found. Any invalid roles have been removed.${conflictSummary ? `\n\n⚠️ Setup blockers:\n${conflictSummary}` : ''}`)],
                         flags: MessageFlags.Ephemeral
                     });
                 }
 
+                const roleMentions = validRoles.map(r => `${r}`).join('\n');
+
                 const embed = new EmbedBuilder()
                     .setColor(getColor('info'))
-                    .setTitle('Auto-Assigned Role')
-                    .setDescription(`${validRoles[0]}${conflictSummary ?`\n\n⚠️ Setup blockers:\n${conflictSummary}`: ''}`)
-                    .setFooter({ text: 'Only one auto-role can be configured.' });
+                    .setTitle('Auto-Assigned Roles')
+                    .setDescription(`${roleMentions}${conflictSummary ? `\n\n⚠️ Setup blockers:\n${conflictSummary}` : ''}`)
+                    .setFooter({ text: `Total configured auto-roles: ${validRoles.length}` });
 
                 await InteractionHelper.safeEditReply(interaction, {
                     embeds: [embed],
