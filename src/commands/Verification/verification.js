@@ -181,24 +181,8 @@ async function handleSetup(interaction, guild, client) {
     }
 
     const guildConfig = await getGuildConfig(client, guild.id);
-    const welcomeConfig = await getWelcomeConfig(client, guild.id);
-    const hasAutoVerifyEnabled = Boolean(guildConfig.verification?.autoVerify?.enabled);
-    const hasAutoRoleConfigured = Boolean(guildConfig.autoRole) || (Array.isArray(welcomeConfig.roleIds) && welcomeConfig.roleIds.length > 0);
 
-    if (hasAutoVerifyEnabled || hasAutoRoleConfigured) {
-        throw createError(
-            'Verification setup blocked by conflicting onboarding system',
-            ErrorTypes.CONFIGURATION,
-            'You cannot enable the verification system while **AutoVerify** or **AutoRole** is configured. Disable those first.',
-            {
-                guildId: guild.id,
-                hasAutoVerifyEnabled,
-                hasAutoRoleConfigured,
-                expected: true,
-                suppressErrorLog: true
-            }
-        );
-    }
+    // 已經移除原本會阻擋 AutoRole 的檢查 (hasAutoRoleConfigured 判斷)
 
     await InteractionHelper.safeDefer(interaction);
 
@@ -226,8 +210,8 @@ async function handleSetup(interaction, guild, client) {
         enabled: true,
         channelId: verificationChannel.id,
         messageId: verifyMessage.id,
-        roleId: verifiedRole.id, // 相容舊版單一欄位
-        roleIds: rolesToGive.map(r => r.id), // 新增多身分組陣列支援
+        roleId: verifiedRole.id, 
+        roleIds: rolesToGive.map(r => r.id), 
         message: message,
         buttonText: buttonText
     };
