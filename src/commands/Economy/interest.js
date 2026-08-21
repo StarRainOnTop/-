@@ -88,13 +88,17 @@ export default {
             components = [row];
         }
 
-        const responseMessage = await InteractionHelper.safeEditReply(interaction, { 
+        // 先發送/編輯回覆
+        await InteractionHelper.safeEditReply(interaction, { 
             embeds: [embed], 
             components: components 
         });
 
         // 如果不是查自己，或者沒有按鈕，就直接結束
         if (!isSelf || components.length === 0) return;
+
+        // 💡 修正處：透過 fetchReply() 取得真實的 Message 物件，再建立 Component Collector
+        const responseMessage = await interaction.fetchReply();
 
         // 建立按鈕點擊監聽器 (Collector)，讓玩家可以直接點擊領取
         const collectorFilter = i => i.user.id === interaction.user.id && i.customId === `claim_interest_${interaction.user.id}`;
