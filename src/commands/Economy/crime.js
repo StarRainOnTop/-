@@ -49,7 +49,7 @@ export default {
 
     execute: withErrorHandling(async (interaction, config, client) => {
         await InteractionHelper.safeDefer(interaction);
-            
+
         const userId = interaction.user.id;
         const guildId = interaction.guildId;
         const now = Date.now();
@@ -102,29 +102,43 @@ export default {
 
         if (isSuccess) {
             userData.wallet = (userData.wallet || 0) + amountEarned;
-            
+
             await setEconomyData(client, guildId, userId, userData);
-            
+
             const embed = successEmbed(
                 "🕵️ 犯罪成功！",
                 `你成功進行了 **${crime.name}**，賺取了 **$${amountEarned.toLocaleString()}**！`
             );
-            
+
             await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
         } else {
             const potentialHaul = Math.floor((crime.min + crime.max) / 2);
-            const fine = Math.min(Math.floor(potentialHaul * FINE_RATE), userData.wallet || 0);
-            userData.wallet = Math.max(0, (userData.wallet || 0) - fine);
+            const fine = Math.floor(potentialHaul * FINE_RATE);
+
+            userData.wallet = userData.wallet || 0;
+            userData.bank = userData.bank || 0;
+
+            const totalMoney = userData.wallet + userData.bank;
+            const actualFinePaid = Math.min(fine, totalMoney);
+
+            if (userData.wallet >= actualFinePaid) {
+                userData.wallet -= actualFinePaid;
+            } else {
+                const remainingFine = actualFinePaid - userData.wallet;
+                userData.wallet = 0;
+                userData.bank = Math.max(0, userData.bank - remainingFine);
+            }
+
             userData.jailedUntil = now + JAIL_TIME;
-            
+
             await setEconomyData(client, guildId, userId, userData);
-            
+
             const embed = warningEmbed(
                 "🚔 犯罪失敗！",
-                `你在嘗試 **${crime.name}** 時被抓包並送進了監獄！` +
-                `你被罰款 **$${fine.toLocaleString()}** 且必須在監獄裡待上 1 小時。`
+                `你在嘗試 **${crime.name}** 時被抓包並送進了監獄！\n` +
+                `你被罰款 **$${actualFinePaid.toLocaleString()}**（已自動從現金與銀行扣除）且必須在監獄裡待上 1 小時。`
             );
-            
+
             await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
         }
     }, { command: 'crime' })
