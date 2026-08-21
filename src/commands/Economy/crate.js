@@ -8,14 +8,14 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 const CRATE_PRICE = 5000; // 單抽價格
 const XP_BOOSTER_ROLE_ID = '1540410469406220358'; // ⚡ 15% 經驗加成身分組 ID
 
-// 獎品池設定
+// 獎品池設定（已調整：提高經驗加成卡權重，降低保險箱權重）
 const PRIZE_POOL = [
-    { id: 'cash_small', name: '💵 現金紅包 ($1,000)', type: 'cash', value: 1000, weight: 40, rarity: '普通' },
-    { id: 'personal_safe', name: '🛡️ 個人保險箱 (防禦次數 +1)', type: 'item', value: 1, weight: 28, rarity: '稀有' },
-    { id: 'xp_booster_card', name: '⚡ 15% 經驗加成卡 (24小時)', type: 'role', roleId: XP_BOOSTER_ROLE_ID, weight: 12, rarity: '稀有' },
-    { id: 'diamond_pickaxe', name: '⛏️ 鑽石鎬', type: 'item', value: 1, weight: 10, rarity: '史詩' },
-    { id: 'cash_jackpot', name: '💰巨額頭獎💰 ($50,000)', type: 'cash', value: 50000, weight: 7, rarity: '傳說' },
-    { id: 'golden_crown_role', name: '👑尊爵黃金皇冠👑 (專屬身分組)', type: 'role', roleId: '1540406574189649940', weight: 3, rarity: '神話' }
+    { id: 'cash_small', name: '💵 現金紅包 ($1,000)', type: 'cash', value: 1000, weight: 60, rarity: '普通' },
+    { id: 'xp_booster_card', name: '⚡ 15% 經驗加成卡 (24小時)', type: 'role', roleId: XP_BOOSTER_ROLE_ID, weight: 18, rarity: '稀有' },
+    { id: 'personal_safe', name: '🛡️ 個人保險箱 (防禦次數 +1)', type: 'item', value: 1, weight: 10, rarity: '稀有' },
+    { id: 'diamond_pickaxe', name: '⛏️ 鑽石鎬', type: 'item', value: 1, weight: 8, rarity: '史詩' },
+    { id: 'cash_jackpot', name: '💰巨額頭獎💰 ($50,000)', type: 'cash', value: 50000, weight: 4, rarity: '傳說' },
+    { id: 'golden_crown_role', name: '👑尊爵黃金皇冠👑 (專屬身分組)', type: 'role', roleId: '1540406574189649940', weight: 2, rarity: '神話' }
 ];
 
 function rollCrate() {
