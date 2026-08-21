@@ -55,13 +55,11 @@ export default {
         // 📈 連續簽到 (Streak) 計算與斷簽邏輯
         let currentStreak = userData.dailyStreak || 0;
         if (lastDaily === 0 || now - lastDaily <= STREAK_RESET_WINDOW) {
-            currentStreak += 1; // 在 48 小時內領取，連續天數 +1
+            currentStreak += 1;
         } else {
-            currentStreak = 1; // 超過 48 小時沒領，重置為 1
+            currentStreak = 1;
         }
 
-        // 計算連續獎勵：每 2 天額外 +$50
-        // 例如：第 1-2 天 +$0，第 3-4 天 +$50，第 5-6 天 +$100 ...以此類推
         const streakBonus = Math.floor((currentStreak - 1) / 2) * 50;
 
         const guildConfig = await getGuildConfig(client, guildId);
@@ -85,14 +83,16 @@ export default {
         }
 
         if (streakBonus > 0) {
-            bonusMessage += `\n🔥 **連續簽到獎勵 (第 ${currentStreak} 天)：** +$${streakBonus.toLocaleString()}`;
+            bonusMessage += `\n🔥 **連續簽到獎勵 (第 ${currentStreak}天)：** +$${streakBonus.toLocaleString()}`;
         }
 
         userData.wallet = (userData.wallet || 0) + earned;
         userData.lastDaily = now;
         userData.dailyStreak = currentStreak;
+        userData.reminderSent = false; // 重置提醒狀態，代表這個新週期還沒發過提醒
 
         await setEconomyData(client, guildId, userId, userData);
+        const claimTimestamp = now;
 
         logger.info(`[ECONOMY_TRANSACTION] Daily claimed`, {
             userId,
@@ -122,16 +122,39 @@ export default {
             )
             .setFooter({
                 text: hasPremiumRole
-                    ? `可在 24 小時後再次領取。（高級會員已生效）• 獎勵準備好時會私訊通知您！`
-                    : `可在 24 小時後再次領取。• 獎勵準備好時會私訊通知您！`,
+                    ? `可在 24 小時後再次領取。（高級會員已生效）`
+                    : `可在 24 小時後再次領取。`,
             });
 
         await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
 
-        // ⏰ 設定 24 小時後的定時器，時間到時自動發送私訊提醒
-        const timeUntilNextDaily = DAILY_COOLDOWN;
+        // ⏰ 精準 24 小時後觸發提醒
         setTimeout(async () => {
             try {
+                const latestData = await getEconomyData(client, guildId, userId);
+                
+                // 1. 如果資料不存在，或是玩家在這段時間內已經領過新的一次獎勵，直接返回
+                if (!latestData || latestData.lastDaily !== claimTimestamp) {
+                    return;
+                }
+
+                // 2. 嚴格檢查：如果當前時間已經超過「領取時間 + 48小時」（也就是像你說的 1號領，拖到 3號才要發的情況），
+                // 代表他已經過了一整天（2號）都沒有上線，直接視為過期，「絕對不發私訊騷擾」！
+                const currentTime = Date.now();
+                if (currentTime > claimTimestamp + STREAK_RESET_WINDOW) {
+                    return;
+                }
+
+                // 3. 確保這個週期的提醒還沒發過，且玩家確實還沒領
+                if (latestData.reminderSent) {
+                    return;
+                }
+
+                // 標記已經發送過提醒，避免重複發送
+                latestData.reminderSent = true;
+                await setEconomyData(client, guildId, userId, latestData);
+
+                // 發送私訊提醒
                 const user = await client.users.fetch(userId);
                 if (user) {
                     const dmEmbed = createEmbed({
@@ -143,7 +166,7 @@ export default {
             } catch (err) {
                 logger.warn(`Could not send daily reminder DM to user ${userId}: ${err.message}`);
             }
-        }, timeUntilNextDaily);
+        }, DAILY_COOLDOWN);
 
     }, { command: 'daily' })
 };
