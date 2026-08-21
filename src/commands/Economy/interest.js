@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { createEmbed, errorEmbed, successEmbed, infoEmbed } from '../../utils/embeds.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { formatDuration } from '../../utils/embeds.js';
@@ -13,84 +13,160 @@ const MAX_INTEREST_LIMIT = 10000; // 🛡️ 單次利息上限：$10,000
 export default {
     data: new SlashCommandBuilder()
         .setName('interest')
-        .setDescription('領取你的每日銀行存款利息（5% 利息，上限 $10,000）'),
+        .setDescription('領取或查看銀行存款利息（5% 利息，上限 $10,000）')
+        .addUserOption(option =>
+            option
+                .setName('player')
+                .setDescription('查看指定玩家的利息與冷卻狀況（選填，不填則預設為自己）')
+                .setRequired(false)
+        ),
 
     execute: withErrorHandling(async (interaction, config, client) => {
         const deferred = await InteractionHelper.safeDefer(interaction);
         if (!deferred) return;
 
-        const userId = interaction.user.id;
-        const guildId = interaction.guildId;
+        const targetUser = interaction.options.getUser('player') || interaction.user;
+        const isSelf = targetUser.id === interaction.user.id;
         const now = Date.now();
 
-        const userData = await getEconomyData(client, guildId, userId);
-        if (!userData) {
+        if (targetUser.bot) {
             throw createError(
-                "Failed to load economy data for interest",
+                "Cannot check bot interest",
+                ErrorTypes.VALIDATION,
+                "機器人沒有經濟帳戶與銀行利息！",
+                { targetId: targetUser.id }
+            );
+        }
+
+        const targetData = await getEconomyData(client, interaction.guildId, targetUser.id);
+        if (!targetData) {
+            throw createError(
+                "Target data not found",
                 ErrorTypes.DATABASE,
-                "無法載入您的經濟數據，請稍後再試。",
-                { userId, guildId }
+                `找不到該玩家的經濟數據。`,
+                { targetId: targetUser.id }
             );
         }
 
-        userData.wallet = userData.wallet || 0;
-        userData.bank = userData.bank || 0;
-        userData.lastInterest = userData.lastInterest || 0;
+        targetData.wallet = targetData.wallet || 0;
+        targetData.bank = targetData.bank || 0;
+        targetData.lastInterest = targetData.lastInterest || 0;
 
-        // 檢查 24 小時冷卻時間
-        if (now < userData.lastInterest + INTEREST_COOLDOWN) {
-            const timeRemaining = userData.lastInterest + INTEREST_COOLDOWN - now;
-            throw createError(
-                "Interest cooldown active",
-                ErrorTypes.RATE_LIMIT,
-                `您的銀行利息還沒冷卻！請在 **${formatDuration(timeRemaining)}** 後再領取。`,
-                { timeRemaining }
+        const lastInterest = targetData.lastInterest;
+        const timePassed = now - lastInterest;
+        const canClaim = timePassed >= INTEREST_COOLDOWN;
+        const timeRemaining = canClaim ? 0 : (lastInterest + INTEREST_COOLDOWN - now);
+
+        // 計算預估/可領取利息
+        let interestAmount = Math.floor(targetData.bank * INTEREST_RATE);
+        if (interestAmount > MAX_INTEREST_LIMIT) {
+            interestAmount = MAX_INTEREST_LIMIT;
+        }
+
+        // 建立 Embed 顯示資訊
+        const embed = infoEmbed(
+            `📈 ${targetUser.username} 的銀行利息資訊`,
+            `以下是該玩家目前的利息與存款概況：`
+        )
+            .setThumbnail(targetUser.displayAvatarURL())
+            .addFields(
+                { name: "🏛️ 銀行存款", value: `$${targetData.bank.toLocaleString()}`, inline: true },
+                { name: "💰 預估利息 (5%)", value: `$${interestAmount.toLocaleString()}`, inline: true },
+                { name: "⏳ 領取狀態", value: canClaim ? "✅ **隨時可領取**" : `⏳ **冷卻中** (剩餘 ${formatDuration(timeRemaining)})`, inline: false }
             );
+
+        // 如果是「查自己」，並且銀行有錢，我們就附上按鈕！
+        let components = [];
+        if (isSelf) {
+            const claimButton = new ButtonBuilder()
+                .setCustomId(`claim_interest_${interaction.user.id}`)
+                .setLabel(canClaim ? '🎁 立即領取利息' : '⏳ 冷卻中無法領取')
+                .setStyle(canClaim ? ButtonStyle.Success : ButtonStyle.Secondary)
+                .setDisabled(!canClaim || targetData.bank <= 0 || interestAmount <= 0);
+
+            const row = new ActionRowBuilder().addComponents(claimButton);
+            components = [row];
         }
 
-        if (userData.bank <= 0) {
-            throw createError(
-                "No bank balance for interest",
-                ErrorTypes.VALIDATION,
-                "你的銀行存款為 $0，無法產生利息！請先使用 `/deposit` 存錢進銀行。",
-                { bank: userData.bank }
-            );
-        }
-
-        // 計算 5% 利息
-        let interestEarned = Math.floor(userData.bank * INTEREST_RATE);
-        
-        // 套用單次利息領取上限保護 ($10,000)
-        if (interestEarned > MAX_INTEREST_LIMIT) {
-            interestEarned = MAX_INTEREST_LIMIT;
-        }
-        
-        if (interestEarned <= 0) {
-            throw createError(
-                "Interest too low",
-                ErrorTypes.VALIDATION,
-                "目前的存款金額太少，無法計算出利息。",
-                { bank: userData.bank }
-            );
-        }
-
-        userData.bank += interestEarned;
-        userData.lastInterest = now;
-        await setEconomyData(client, guildId, userId, userData);
-
-        logger.info(`[ECONOMY] Interest claimed by ${userId}`, { userId, guildId, interestEarned, newBank: userData.bank });
-
-        const embed = successEmbed(
-            "📈 成功領取銀行利息！",
-            `您的存款幫您賺取了利息，共獲得 **$${interestEarned.toLocaleString()}**！\n*(註：每日利息上限為 $${MAX_INTEREST_LIMIT.toLocaleString()} 以維持經濟平衡)*`
-        ).addFields(
-            { name: "本次利息收入", value: `+$${interestEarned.toLocaleString()}`, inline: true },
-            { name: "目前銀行總存款", value: `$${userData.bank.toLocaleString()}`, inline: true }
-        ).setFooter({
-            text: "掌握最新影片資訊、交流床戰戰術、尋找優質組隊隊友，快加入我們的伺服器吧！"
+        const responseMessage = await InteractionHelper.safeEditReply(interaction, { 
+            embeds: [embed], 
+            components: components 
         });
 
-        return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+        // 如果不是查自己，或者沒有按鈕，就直接結束
+        if (!isSelf || components.length === 0) return;
+
+        // 建立按鈕點擊監聽器 (Collector)，讓玩家可以直接點擊領取
+        const collectorFilter = i => i.user.id === interaction.user.id && i.customId === `claim_interest_${interaction.user.id}`;
+        const collector = responseMessage.createMessageComponentCollector({ filter: collectorFilter, time: 60000 }); // 60 秒後按鈕失效
+
+        collector.on('collect', async i => {
+            try {
+                await i.deferUpdate();
+                const currentNow = Date.now();
+                const freshData = await getEconomyData(client, interaction.guildId, interaction.user.id);
+                
+                freshData.bank = freshData.bank || 0;
+                freshData.lastInterest = freshData.lastInterest || 0;
+
+                // 再次驗證冷卻
+                if (currentNow < freshData.lastInterest + INTEREST_COOLDOWN) {
+                    return await i.followUp({ content: "❌ 您的利息還在冷卻中，無法領取！", ephemeral: true });
+                }
+
+                if (freshData.bank <= 0) {
+                    return await i.followUp({ content: "❌ 你的銀行存款為 $0，無法領取利息！", ephemeral: true });
+                }
+
+                let earned = Math.floor(freshData.bank * INTEREST_RATE);
+                if (earned > MAX_INTEREST_LIMIT) earned = MAX_INTEREST_LIMIT;
+
+                freshData.bank += earned;
+                freshData.lastInterest = currentNow;
+                await setEconomyData(client, interaction.guildId, interaction.user.id, freshData);
+
+                logger.info(`[ECONOMY] Interest claimed via button by ${interaction.user.id}`, { userId: interaction.user.id, earned });
+
+                // 領取成功後更新原本的 Embed 與按鈕狀態
+                const successUpdatedEmbed = successEmbed(
+                    "📈 成功領取銀行利息！",
+                    `您透過按鈕成功領取了存款利息共 **$${earned.toLocaleString()}**！\n*(註：每日利息上限為 $${MAX_INTEREST_LIMIT.toLocaleString()})*`
+                ).addFields(
+                    { name: "本次利息收入", value: `+$${earned.toLocaleString()}`, inline: true },
+                    { name: "目前銀行總存款", value: `$${freshData.bank.toLocaleString()}`, inline: true }
+                );
+
+                const disabledButton = new ButtonBuilder()
+                    .setCustomId('claimed_already')
+                    .setLabel('✅ 今日已領取')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(true);
+
+                const disabledRow = new ActionRowBuilder().addComponents(disabledButton);
+
+                await interaction.editReply({ embeds: [successUpdatedEmbed], components: [disabledRow] });
+                collector.stop();
+            } catch (err) {
+                logger.error(`Error handling interest button click: ${err.message}`);
+            }
+        });
+
+        collector.on('end', async () => {
+            // 時間到（60秒後）自動把按鈕停用，保持畫面乾淨
+            try {
+                const freshMsg = await interaction.fetchReply();
+                if (freshMsg && freshMsg.components.length > 0) {
+                    const oldRow = freshMsg.components[0];
+                    if (oldRow && oldRow.components[0] && !oldRow.components[0].data.disabled) {
+                        const expiredButton = ButtonBuilder.from(oldRow.components[0]).setDisabled(true).setLabel('⌛ 互動已逾時');
+                        const expiredRow = new ActionRowBuilder().addComponents(expiredButton);
+                        await interaction.editReply({ components: [expiredRow] }).catch(() => {});
+                    }
+                }
+            } catch (e) {
+                // 忽略過期錯誤
+            }
+        });
 
     }, { command: 'interest' })
 };
