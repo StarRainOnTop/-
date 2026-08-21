@@ -9,7 +9,7 @@ const ROB_COOLDOWN = BotConfig.economy?.cooldowns?.rob ?? 2 * 60 * 60 * 1000;
 const BASE_ROB_SUCCESS_CHANCE = BotConfig.economy?.robSuccessRate ?? 0.4;
 const ROB_WALLET_PERCENTAGE = 0.15; // 搶奪身上現金的 15%
 const ROB_BANK_PERCENTAGE = 0.05;   // 額外搶奪銀行存款的 5%
-const FINE_PERCENTAGE = 0.1;
+const FINE_PERCENTAGE = 0.1;        // 失敗罰款總資產的 10%
 
 export default {
     data: new SlashCommandBuilder()
@@ -129,17 +129,32 @@ export default {
                 `你成功從 ${victimUser.username} 那裡突破防線！\n掠奪了現金 **$${walletStolen.toLocaleString()}** 與銀行存款 **$${bankStolen.toLocaleString()}**，共計 **$${totalStolen.toLocaleString()}**！`
             );
         } else {
-            const fineAmount = Math.floor((robberData.wallet || 0) * FINE_PERCENTAGE);
+            // 失敗罰款：計算搶匪總資產（現金+銀行）的 10%
+            const robberTotalWealth = (robberData.wallet || 0) + (robberData.bank || 0);
+            const fineAmount = Math.floor(robberTotalWealth * FINE_PERCENTAGE);
 
-            if ((robberData.wallet || 0) < fineAmount) {
-                robberData.wallet = 0;
+            let walletFine = 0;
+            let bankFine = 0;
+
+            if (robberTotalWealth <= 0) {
+                walletFine = 0;
+                bankFine = 0;
+            } else if ((robberData.wallet || 0) >= fineAmount) {
+                // 現金夠直接扣光罰款
+                robberData.wallet -= fineAmount;
+                walletFine = fineAmount;
             } else {
-                robberData.wallet = (robberData.wallet || 0) - fineAmount;
+                // 現金不夠，把現金扣到 0，剩下的從銀行扣
+                walletFine = robberData.wallet || 0;
+                bankFine = fineAmount - walletFine;
+
+                robberData.wallet = 0;
+                robberData.bank = Math.max(0, (robberData.bank || 0) - bankFine);
             }
 
             resultEmbed = buildUserErrorEmbed(
                 'unknown',
-                `你搶劫失敗並被逮捕了！你被罰款了 **$${fineAmount.toLocaleString()}** 的自身現金。`,
+                `你搶劫失敗並被警方逮捕了！你被罰款了總共 **$${fineAmount.toLocaleString()}**（包含現金 **$${walletFine.toLocaleString()}** 與銀行存款 **$${bankFine.toLocaleString()}**）。`,
                 { titleOverride: '搶劫失敗' }
             );
         }
@@ -152,8 +167,8 @@ export default {
         resultEmbed
             .addFields(
                 {
-                    name: `你的新現金餘額 (${interaction.user.username})`,
-                    value: `$${robberData.wallet.toLocaleString()}`,
+                    name: `你的新餘額 (${interaction.user.username})`,
+                    value: `現金: $${(robberData.wallet || 0).toLocaleString()}\n銀行: $${(robberData.bank || 0).toLocaleString()}`,
                     inline: true,
                 },
                 {
