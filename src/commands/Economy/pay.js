@@ -25,6 +25,12 @@ export default {
                 .setDescription('轉帳金額')
                 .setRequired(true)
                 .setMinValue(1)
+        )
+        .addBooleanOption(option =>
+            option
+                .setName('dm')
+                .setDescription('是否發送私訊通知收款人（預設為開啟）')
+                .setRequired(false)
         ),
 
     execute: withErrorHandling(async (interaction, config, client) => {
@@ -34,12 +40,15 @@ export default {
         const senderId = interaction.user.id;
         const receiver = interaction.options.getUser("user");
         const amount = interaction.options.getInteger("amount");
+        // 取得使用者設定的 DM 開關，若未填則預設為 true (開啟)
+        const sendDm = interaction.options.getBoolean("dm") ?? true;
         const guildId = interaction.guildId;
 
         logger.debug(`[ECONOMY] Pay command initiated`, { 
             senderId, 
             receiverId: receiver.id,
             amount,
+            sendDm,
             guildId
         });
 
@@ -171,7 +180,7 @@ export default {
                 }
             )
             .setFooter({
-                text: `已轉帳給 ${receiver.tag} • 下次轉帳需等待 5 分鐘冷卻`,
+                text: `已轉帳給 ${receiver.tag} • 冷卻 5 分鐘`,
                 iconURL: receiver.displayAvatarURL(),
             });
 
@@ -181,23 +190,27 @@ export default {
             senderId,
             receiverId: receiver.id,
             amount,
+            sendDm,
             senderBalance: updatedSenderData.wallet,
             receiverBalance: updatedReceiverData.wallet,
             dailyUsed: updatedSenderData.dailyTransferUsed
         });
 
-        try {
-            const receiverEmbed = createEmbed({ 
-                title: "💵 收到入帳通知！", 
-                description: `${interaction.user.username} 轉帳了 **$${amount.toLocaleString()}** 給你。` 
-            }).addFields({
-                name: "你的新現金餘額",
-                value: `$${updatedReceiverData.wallet.toLocaleString()}`,
-                inline: true,
-            });
-            await receiver.send({ embeds: [receiverEmbed] });
-        } catch (e) {
+        // ✉️ 根據使用者選擇的 dm 參數決定是否發送私訊
+        if (sendDm) {
+            try {
+                const receiverEmbed = createEmbed({ 
+                    title: "💵 收到入帳通知！", 
+                    description: `${interaction.user.username} 轉帳了 **$${amount.toLocaleString()}** 給你。` 
+                }).addFields({
+                    name: "你的新現金餘額",
+                    value: `$${updatedReceiverData.wallet.toLocaleString()}`,
+                    inline: true,
+                });
+                await receiver.send({ embeds: [receiverEmbed] });
+            } catch (e) {
                 logger.warn(`Could not DM user ${receiver.id}: ${e.message}`);
+            }
         }
     }, { command: 'pay' })
 };
