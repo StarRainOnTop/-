@@ -88,29 +88,37 @@ export default {
         const guildConfig = (await getGuildConfig(client, guildId)) || {};
         const PREMIUM_ROLE_ID = guildConfig.premiumRoleId;
 
+        // 決定目標身分組 ID：如果是 custom_role 就用指定 ID，否則如果是 role 類型則使用伺服器的 premiumRoleId
+        let targetRoleId = null;
+        if (itemId === "custom_role") {
+            targetRoleId = "1540321552695037972";
+        } else if (item.type === "role" || itemId === "premium_role") {
+            targetRoleId = PREMIUM_ROLE_ID;
+        }
+
         // 身分組特別驗證
-        if (item.type === "role" || itemId === "premium_role") {
-            if (!PREMIUM_ROLE_ID) {
+        if (targetRoleId || item.type === "role" || itemId === "premium_role" || itemId === "custom_role") {
+            if (!targetRoleId) {
                 throw createError(
-                    "Premium role not configured",
+                    "Role not configured",
                     ErrorTypes.CONFIGURATION,
-                    "伺服器管理員尚未設定**高級商店身分組 (Premium Shop Role)**。",
+                    "此身分組尚未在系統中正確設定。",
                     { itemId }
                 );
             }
-            if (interaction.member.roles.cache.has(PREMIUM_ROLE_ID)) {
+            if (interaction.member.roles.cache.has(targetRoleId)) {
                 throw createError(
                     "Role already owned",
                     ErrorTypes.VALIDATION,
                     `您已經擁有 **${item.name}** 身分組了。`,
-                    { itemId, roleId: PREMIUM_ROLE_ID }
+                    { itemId, roleId: targetRoleId }
                 );
             }
             if (quantity > 1) {
                 throw createError(
                     "Invalid quantity for role",
                     ErrorTypes.VALIDATION,
-                    `您只能購買 **${item.name}** 身分組一次。`,
+                    `您只能購買 **${item.name}** 一次。`,
                     { itemId, quantity }
                 );
             }
@@ -122,17 +130,17 @@ export default {
         let successDescription = `您已成功以 **$${totalCost.toLocaleString()}** 購買了 ${quantity} 個 **${item.name}**！`;
 
         // 4. 根據商品類型處理發貨與生效邏輯
-        if (item.type === "role" || itemId === "premium_role") {
+        if (targetRoleId || item.type === "role" || itemId === "premium_role" || itemId === "custom_role") {
             const member = interaction.member;
-            const role = interaction.guild.roles.cache.get(PREMIUM_ROLE_ID);
+            const role = interaction.guild.roles.cache.get(targetRoleId);
 
             if (!role) {
                 userData.wallet += totalCost; // 退款
                 throw createError(
                     "Role not found",
                     ErrorTypes.CONFIGURATION,
-                    "此伺服器中已設定的高級身分組已不存在。",
-                    { roleId: PREMIUM_ROLE_ID }
+                    "此伺服器中找不到對應的身分組（可能已被刪除或 ID 有誤）。",
+                    { roleId: targetRoleId }
                 );
             }
 
@@ -146,7 +154,7 @@ export default {
                     "Role assignment failed",
                     ErrorTypes.DISCORD_API,
                     "已成功扣款，但授予身分組失敗。您的金額已全數退還。",
-                    { roleId: PREMIUM_ROLE_ID, originalError: roleError.message }
+                    { roleId: targetRoleId, originalError: roleError.message }
                 );
             }
         } else if (item.type === "upgrade") {
