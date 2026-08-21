@@ -62,7 +62,7 @@ function randomChoice(items) {
     return items[Math.floor(Math.random() * items.length)];
 }
 
-function resolveOutcome(activity, wallet) {
+function resolveOutcome(activity, totalWealth) {
     const successChance = Math.max(0.35, 0.55 - activity.risk * 0.2);
     const fineChance = 0.22;
     const robbedChance = 0.2;
@@ -81,7 +81,7 @@ function resolveOutcome(activity, wallet) {
     const remainingAfterSuccess = roll - successChance;
 
     if (remainingAfterSuccess < fineChance) {
-        const maxFine = Math.min(wallet, Math.max(150, Math.floor(activity.max * 0.4)));
+        const maxFine = Math.min(totalWealth, Math.max(150, Math.floor(activity.max * 0.4)));
         const minFine = Math.min(maxFine, Math.max(50, Math.floor(activity.min * 0.2)));
         const amount = maxFine > 0 ? randomInt(minFine, maxFine) : 0;
         return {
@@ -93,8 +93,8 @@ function resolveOutcome(activity, wallet) {
     }
 
     if (remainingAfterSuccess < fineChance + robbedChance) {
-        const maxRobbed = Math.min(wallet, Math.max(200, Math.floor(wallet * 0.35)));
-        const minRobbed = Math.min(maxRobbed, Math.max(75, Math.floor(wallet * 0.1)));
+        const maxRobbed = Math.min(totalWealth, Math.max(200, Math.floor(totalWealth * 0.35)));
+        const minRobbed = Math.min(maxRobbed, Math.max(75, Math.floor(totalWealth * 0.1)));
         const amount = maxRobbed > 0 ? randomInt(minRobbed, maxRobbed) : 0;
         return {
             type: 'robbed',
@@ -104,7 +104,7 @@ function resolveOutcome(activity, wallet) {
         };
     }
 
-    const maxLoss = Math.min(wallet, Math.max(100, Math.floor(activity.max * 0.3)));
+    const maxLoss = Math.min(totalWealth, Math.max(100, Math.floor(activity.max * 0.3)));
     const minLoss = Math.min(maxLoss, Math.max(40, Math.floor(activity.min * 0.15)));
     const amount = maxLoss > 0 ? randomInt(minLoss, maxLoss) : 0;
     return {
@@ -124,79 +124,99 @@ export default {
         const deferred = await InteractionHelper.safeDefer(interaction);
         if (!deferred) return;
 
-            const userId = interaction.user.id;
-            const guildId = interaction.guildId;
-            const now = Date.now();
+        const userId = interaction.user.id;
+        const guildId = interaction.guildId;
+        const now = Date.now();
 
-            logger.debug(`[ECONOMY] Slut command started for ${userId}`, { userId, guildId });
+        logger.debug(`[ECONOMY] Slut command started for ${userId}`, { userId, guildId });
 
-            const userData = await getEconomyData(client, guildId, userId);
+        const userData = await getEconomyData(client, guildId, userId);
 
-            if (!userData) {
-                throw createError(
-                    "Failed to load economy data for slut command",
-                    ErrorTypes.DATABASE,
-                    "無法載入您的經濟數據，請稍後再試。",
-                    { userId, guildId }
-                );
+        if (!userData) {
+            throw createError(
+                "Failed to load economy data for slut command",
+                ErrorTypes.DATABASE,
+                "無法載入您的經濟數據，請稍後再試。",
+                { userId, guildId }
+            );
+        }
+
+        const lastSlut = userData.lastSlut || 0;
+
+        if (now - lastSlut < SLUT_COOLDOWN) {
+            const remainingTime = lastSlut + SLUT_COOLDOWN - now;
+            throw createError(
+                "Slut cooldown active",
+                ErrorTypes.RATE_LIMIT,
+                `你需要休息才能再次工作！請在 **${Math.ceil(remainingTime / 60000)}** 分鐘後再試。`,
+                { timeRemaining: remainingTime, cooldownType: 'slut' }
+            );
+        }
+
+        const activity = randomChoice(SLUT_ACTIVITIES);
+
+        userData.wallet = userData.wallet || 0;
+        userData.bank = userData.bank || 0;
+        const totalWealth = userData.wallet + userData.bank;
+
+        const outcome = resolveOutcome(activity, totalWealth);
+
+        userData.lastSlut = now;
+        userData.totalSluts = (userData.totalSluts || 0) + 1;
+        userData.totalSlutEarnings = (userData.totalSlutEarnings || 0) + Math.max(0, outcome.delta);
+        userData.totalSlutLosses = (userData.totalSlutLosses || 0) + Math.max(0, -outcome.delta);
+
+        if (outcome.type !== 'payout') {
+            userData.failedSluts = (userData.failedSluts || 0) + 1;
+        }
+
+        // 資金異動處理
+        if (outcome.delta >= 0) {
+            // 賺錢直接加到現金
+            userData.wallet += outcome.delta;
+        } else {
+            // 虧損/罰款：先扣現金，現金不夠則從銀行扣（不讓銀行變負數）
+            const lossAmount = Math.abs(outcome.delta);
+            if (userData.wallet >= lossAmount) {
+                userData.wallet -= lossAmount;
+            } else {
+                const remainingLoss = lossAmount - userData.wallet;
+                userData.wallet = 0;
+                userData.bank = Math.max(0, userData.bank - remainingLoss);
             }
+        }
 
-            const lastSlut = userData.lastSlut || 0;
+        await setEconomyData(client, guildId, userId, userData);
 
-            if (now - lastSlut < SLUT_COOLDOWN) {
-                const remainingTime = lastSlut + SLUT_COOLDOWN - now;
-                throw createError(
-                    "Slut cooldown active",
-                    ErrorTypes.RATE_LIMIT,
-                    `你需要休息才能再次工作！請在 **${Math.ceil(remainingTime / 60000)}** 分鐘後再試。`,
-                    { timeRemaining: remainingTime, cooldownType: 'slut' }
-                );
-            }
+        logger.info(`[ECONOMY_TRANSACTION] Slut activity resolved`, {
+            userId,
+            guildId,
+            activity: activity.name,
+            outcomeType: outcome.type,
+            amountDelta: outcome.delta,
+            newWallet: userData.wallet,
+            newBank: userData.bank,
+            timestamp: new Date().toISOString()
+        });
 
-            const activity = randomChoice(SLUT_ACTIVITIES);
+        const amountLabel = `${outcome.delta >= 0 ? '+' : '-'}$${Math.abs(outcome.delta).toLocaleString()}`;
+        const summaryLines = [
+            `${outcome.message}`,
+            `💸 **淨利結果：** ${amountLabel}`,
+            `💳 **當前現金餘額：** $${userData.wallet.toLocaleString()}`,
+            `🏦 **當前銀行餘額：** $${userData.bank.toLocaleString()}`,
+            `📊 **總工作場次：** ${userData.totalSluts}`,
+            `💵 **總賺取金額：** $${(userData.totalSlutEarnings || 0).toLocaleString()}`,
+            `🧾 **總虧損金額：** $${(userData.totalSlutLosses || 0).toLocaleString()}`
+        ];
 
-            const outcome = resolveOutcome(activity, userData.wallet || 0);
+        const embed = createEmbed({
+            title: outcome.title,
+            description: summaryLines.join('\n'),
+            color: outcome.delta >= 0 ? 'success' : 'error',
+            timestamp: true
+        });
 
-            userData.lastSlut = now;
-            userData.totalSluts = (userData.totalSluts || 0) + 1;
-            userData.totalSlutEarnings = (userData.totalSlutEarnings || 0) + Math.max(0, outcome.delta);
-            userData.totalSlutLosses = (userData.totalSlutLosses || 0) + Math.max(0, -outcome.delta);
-
-            if (outcome.type !== 'payout') {
-                userData.failedSluts = (userData.failedSluts || 0) + 1;
-            }
-
-            userData.wallet = Math.max(0, (userData.wallet || 0) + outcome.delta);
-
-            await setEconomyData(client, guildId, userId, userData);
-
-            logger.info(`[ECONOMY_TRANSACTION] Slut activity resolved`, {
-                userId,
-                guildId,
-                activity: activity.name,
-                outcomeType: outcome.type,
-                amountDelta: outcome.delta,
-                newWallet: userData.wallet,
-                timestamp: new Date().toISOString()
-            });
-
-            const amountLabel = `${outcome.delta >= 0 ? '+' : '-'}$${Math.abs(outcome.delta).toLocaleString()}`;
-            const summaryLines = [
-                `${outcome.message}`,
-                `💸 **淨利結果：** ${amountLabel}`,
-                `💳 **當前現金餘額：** $${userData.wallet.toLocaleString()}`,
-                `📊 **總工作場次：** ${userData.totalSluts}`,
-                `💵 **總賺取金額：** $${(userData.totalSlutEarnings || 0).toLocaleString()}`,
-                `🧾 **總虧損金額：** $${(userData.totalSlutLosses || 0).toLocaleString()}`
-            ];
-
-            const embed = createEmbed({
-                title: outcome.title,
-                description: summaryLines.join('\n'),
-                color: outcome.delta >= 0 ? 'success' : 'error',
-                timestamp: true
-            });
-
-            await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+        await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
     }, { command: 'slut' })
 };
