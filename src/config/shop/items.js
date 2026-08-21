@@ -139,9 +139,9 @@ export const shopItems = [
         id: 'personal_safe',
         name: '🔒 個人保險箱',
         price: 30000,
-        description: '保護你的金錢免遭竊取。防止其他人搶劫你。',
+        description: '保護你的金錢免遭竊取。可防禦 5 次搶劫，用完需重新購買。',
         type: 'tool',
-        durability: null,
+        durability: 5,
         effect: {
             type: 'robbery_protection',
             protection: true
@@ -192,7 +192,8 @@ export function validatePurchase(itemId, userData) {
 
     if (item.type === 'tool') {
         const currentQuantity = inventory[itemId] || 0;
-        if (itemId !== 'bank_note' && currentQuantity > 0) {
+        // 允許 bank_note 與 personal_safe 重複購買來疊加數量/耐久度
+        if (itemId !== 'bank_note' && itemId !== 'personal_safe' && currentQuantity > 0) {
             return { 
                 valid: false, 
                 reason: `你已經有一個 ${item.name} 了` 
