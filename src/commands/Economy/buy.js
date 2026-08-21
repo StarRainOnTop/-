@@ -154,8 +154,15 @@ export default {
             userData.upgrades[itemId] = (userData.upgrades[itemId] || 0) + quantity;
             const currentLevel = userData.upgrades[itemId];
             successDescription += `\n\n**✨ 您的 ${item.name} 已提升至 Lv.${currentLevel}！**`;
-        } else if (item.id === "personal_safe" || item.effect?.type === "robbery_protection") {
-            // 處理防盜護罩時效（支援時間疊加）
+        } else if (item.id === "personal_safe") {
+            // 個人保險箱：依照耐久度（預設 5）與購買數量計算總防禦次數並累加
+            const durabilityPerItem = item.durability || 5;
+            const addedDefense = quantity * durabilityPerItem;
+            userData.inventory[itemId] = (userData.inventory[itemId] || 0) + addedDefense;
+
+            successDescription += `\n\n**🛡️ 個人保險箱已新增至您的背包！總共增加了 ${addedDefense} 次搶劫防禦次數。**`;
+        } else if (item.effect?.type === "robbery_protection") {
+            // 其他防盜護罩相關道具（保留原本的時效邏輯）
             userData.inventory[itemId] = (userData.inventory[itemId] || 0) + quantity;
             const durationMs = (item.effect?.durationDays || 7) * 24 * 60 * 60 * 1000 * quantity;
             const now = Date.now();
