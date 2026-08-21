@@ -8,15 +8,15 @@ import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { botConfig } from '../../config/bot.js';
 
-const DAILY_COOLDOWN = 24 * 60 * 60 * 1000; // 24 小時
-const STREAK_RESET_WINDOW = 48 * 60 * 60 * 1000; // 48 小時（超過這段時間沒領就會斷簽）
-const DAILY_AMOUNT = botConfig.economy?.dailyAmount ?? 200;
+const DAILY_COOLDOWN = 24 * 60 * 60 * 1000; // 24 小時冷卻
+const STREAK_RESET_WINDOW = 24 * 60 * 60 * 1000; // 超過 24 小時沒領即斷簽重置
+const BASE_DAILY_AMOUNT = 100; // 基礎每日獎勵 $100
 const PREMIUM_BONUS_PERCENTAGE = 0.1;
 
 export default {
     data: new SlashCommandBuilder()
         .setName('daily')
-        .setDescription('領取你的每日現金獎勵（連續領取每 2 天額外 +$50）'),
+        .setDescription('領取你的每日現金獎勵（基礎 $100，超過 24 小時未領即斷簽重置）'),
 
     execute: withErrorHandling(async (interaction, config, client) => {
         const deferred = await InteractionHelper.safeDefer(interaction);
@@ -52,20 +52,25 @@ export default {
             );
         }
 
-        // 📈 連續簽到 (Streak) 計算與斷簽邏輯
+        // 📈 連續簽到 (Streak) 計算：超過 24 小時沒領（即 now - lastDaily 超過 48 小時）就重置
+        // 因為領取間隔是 24 小時冷卻，所以允許的區間是：冷卻時間 (24h) + 容許窗 (24h) = 48h 內必須按下
+        // 也就是說：上次領完後，如果過了 48 小時以上（等於超過 24 小時沒在冷卻好時領），就會斷簽！
+        const ALLOWED_WINDOW = DAILY_COOLDOWN + STREAK_RESET_WINDOW; // 48 小時
         let currentStreak = userData.dailyStreak || 0;
-        if (lastDaily === 0 || now - lastDaily <= STREAK_RESET_WINDOW) {
-            currentStreak += 1;
+        
+        if (lastDaily === 0 || now - lastDaily <= ALLOWED_WINDOW) {
+            currentStreak += 1; // 準時接續領取，天數 +1
         } else {
-            currentStreak = 1;
+            currentStreak = 1; // 超過 24 小時沒領（總間隔超過 48h），斷簽重置回 1，金額回歸 $100
         }
 
+        // 計算連續獎勵：每 2 天額外 +$50
         const streakBonus = Math.floor((currentStreak - 1) / 2) * 50;
 
         const guildConfig = await getGuildConfig(client, guildId);
         const PREMIUM_ROLE_ID = guildConfig.premiumRoleId;
 
-        let earned = DAILY_AMOUNT + streakBonus;
+        let earned = BASE_DAILY_AMOUNT + streakBonus;
         let bonusMessage = "";
         let hasPremiumRole = false;
 
@@ -75,7 +80,7 @@ export default {
             interaction.member.roles.cache.has(PREMIUM_ROLE_ID)
         ) {
             const premiumBonus = Math.floor(
-                DAILY_AMOUNT * PREMIUM_BONUS_PERCENTAGE,
+                BASE_DAILY_AMOUNT * PREMIUM_BONUS_PERCENTAGE,
             );
             earned += premiumBonus;
             bonusMessage += `\n✨ **高級會員加成：** +$${premiumBonus.toLocaleString()}`;
@@ -83,13 +88,15 @@ export default {
         }
 
         if (streakBonus > 0) {
-            bonusMessage += `\n🔥 **連續簽到獎勵 (第 ${currentStreak}天)：** +$${streakBonus.toLocaleString()}`;
+            bonusMessage += `\n🔥 **連續簽到獎勵 (第 ${currentStreak} 天)：** +$${streakBonus.toLocaleString()}`;
+        } else {
+            bonusMessage += `\n💡 提示：連續領取每 2 天額外 +$50！`;
         }
 
         userData.wallet = (userData.wallet || 0) + earned;
         userData.lastDaily = now;
         userData.dailyStreak = currentStreak;
-        userData.reminderSent = false; // 重置提醒狀態，代表這個新週期還沒發過提醒
+        userData.reminderSent = false;
 
         await setEconomyData(client, guildId, userId, userData);
         const claimTimestamp = now;
@@ -128,33 +135,28 @@ export default {
 
         await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
 
-        // ⏰ 精準 24 小時後觸發提醒
+        // ⏰ 24 小時後觸發提醒：如果玩家在冷卻結束後 24 小時內沒回來領（即超過 48 小時沒互動），就不發送私訊
         setTimeout(async () => {
             try {
                 const latestData = await getEconomyData(client, guildId, userId);
                 
-                // 1. 如果資料不存在，或是玩家在這段時間內已經領過新的一次獎勵，直接返回
                 if (!latestData || latestData.lastDaily !== claimTimestamp) {
-                    return;
+                    return; // 已經領過或重置過，不發私訊
                 }
 
-                // 2. 嚴格檢查：如果當前時間已經超過「領取時間 + 48小時」（也就是像你說的 1號領，拖到 3號才要發的情況），
-                // 代表他已經過了一整天（2號）都沒有上線，直接視為過期，「絕對不發私訊騷擾」！
                 const currentTime = Date.now();
-                if (currentTime > claimTimestamp + STREAK_RESET_WINDOW) {
+                // 如果當前時間已經超過「領取時間 + 48小時」（代表過了 24h 冷卻又超過 24h 沒領），直接不發 DM
+                if (currentTime > claimTimestamp + ALLOWED_WINDOW) {
                     return;
                 }
 
-                // 3. 確保這個週期的提醒還沒發過，且玩家確實還沒領
                 if (latestData.reminderSent) {
                     return;
                 }
 
-                // 標記已經發送過提醒，避免重複發送
                 latestData.reminderSent = true;
                 await setEconomyData(client, guildId, userId, latestData);
 
-                // 發送私訊提醒
                 const user = await client.users.fetch(userId);
                 if (user) {
                     const dmEmbed = createEmbed({
