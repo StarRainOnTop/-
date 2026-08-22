@@ -9,17 +9,17 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
   data: new SlashCommandBuilder()
     .setName('levelremove')
-    .setDescription('Remove levels from a user')
+    .setDescription('移除使用者的等級')
     .addUserOption((option) =>
       option
         .setName('user')
-        .setDescription('The user to remove levels from')
+        .setDescription('要移除等級的使用者')
         .setRequired(true)
     )
     .addIntegerOption((option) =>
       option
         .setName('levels')
-        .setDescription('Number of levels to remove')
+        .setDescription('要移除的等級數量')
         .setRequired(true)
         .setMinValue(1)
     )
@@ -33,7 +33,7 @@ export default {
     const hasPermission = await checkUserPermissions(
       interaction,
       PermissionFlagsBits.ManageGuild,
-      'You need ManageGuild permission to use this command.'
+      '你需要 **管理伺服器 (ManageGuild)** 權限才能使用此指令。'
     );
     if (!hasPermission) return;
 
@@ -43,7 +43,7 @@ export default {
         embeds: [
           new EmbedBuilder()
             .setColor('#f1c40f')
-            .setDescription('The leveling system is currently disabled on this server.')
+            .setDescription('本伺服器目前已停用等級系統。')
         ],
         flags: MessageFlags.Ephemeral
       });
@@ -58,7 +58,7 @@ export default {
       throw new TitanBotError(
         `User ${targetUser.id} not found in this guild`,
         ErrorTypes.USER_INPUT,
-        'The specified user is not in this server.'
+        '指定的使用者不在本伺服器中。'
       );
     }
 
@@ -67,7 +67,7 @@ export default {
       throw new TitanBotError(
         `User ${targetUser.id} is already at minimum level`,
         ErrorTypes.VALIDATION,
-        `${targetUser.tag} is already at level 0 and cannot have levels removed.`
+        `${targetUser.tag} 目前已經是等級 0，無法再移除等級。`
       );
     }
 
@@ -76,8 +76,8 @@ export default {
     await InteractionHelper.safeEditReply(interaction, {
       embeds: [
         createEmbed({
-          title: 'Levels Removed',
-          description: `Successfully removed ${levelsToRemove} levels from ${targetUser.tag}.\n**New Level:** ${updatedData.level}`,
+          title: '已移除等級',
+          description: `成功為 ${targetUser.tag} 移除了 ${levelsToRemove} 個等級。\n**目前新等級：** ${updatedData.level}`,
           color: 'success'
         })
       ]
