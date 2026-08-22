@@ -14,11 +14,11 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
     data: new SlashCommandBuilder()
         .setName("greroll")
-        .setDescription("Rerolls the winner(s) for an ended giveaway.")
+        .setDescription("重新抽選已結束抽獎活動的得獎者。")
         .addStringOption((option) =>
             option
                 .setName("messageid")
-                .setDescription("The message ID of the ended giveaway.")
+                .setDescription("已結束抽獎活動的訊息 ID。")
                 .setRequired(true),
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
@@ -28,7 +28,7 @@ export default {
             throw new TitanBotError(
                 'Giveaway command used outside guild',
                 ErrorTypes.VALIDATION,
-                'This command can only be used in a server.',
+                '此指令只能在伺服器中使用。',
                 { userId: interaction.user.id }
             );
         }
@@ -37,7 +37,7 @@ export default {
             throw new TitanBotError(
                 'User lacks ManageGuild permission',
                 ErrorTypes.PERMISSION,
-                "You need the 'Manage Server' permission to reroll a giveaway.",
+                "你需要「管理伺服器」權限才能重新抽選抽獎活動。",
                 { userId: interaction.user.id, guildId: interaction.guildId }
             );
         }
@@ -50,7 +50,7 @@ export default {
             throw new TitanBotError(
                 'Invalid message ID format',
                 ErrorTypes.VALIDATION,
-                'Please provide a valid message ID.',
+                '請提供有效的訊息 ID。',
                 { providedId: messageId }
             );
         }
@@ -66,7 +66,7 @@ export default {
             throw new TitanBotError(
                 `Giveaway not found: ${messageId}`,
                 ErrorTypes.VALIDATION,
-                "No giveaway was found with that message ID in the database.",
+                "在資料庫中找不到具有該訊息 ID 的抽獎活動。",
                 { messageId, guildId: interaction.guildId }
             );
         }
@@ -75,7 +75,7 @@ export default {
             throw new TitanBotError(
                 `Giveaway still active: ${messageId}`,
                 ErrorTypes.VALIDATION,
-                "This giveaway is still active. Please use `/gend` to end it first.",
+                "此抽獎活動仍在進行中。請先使用 `/gend` 來結束它。",
                 { messageId, status: 'active' }
             );
         }
@@ -86,7 +86,7 @@ export default {
             throw new TitanBotError(
                 `Insufficient participants for reroll: ${participants.length} < ${giveaway.winnerCount}`,
                 ErrorTypes.VALIDATION,
-                "Not enough entries to pick the required number of winners.",
+                "參與人數不足，無法選出指定數量的得獎者。",
                 { participantsCount: participants.length, winnersNeeded: giveaway.winnerCount }
             );
         }
@@ -123,8 +123,8 @@ export default {
             return InteractionHelper.safeReply(interaction, {
                 embeds: [
                     successEmbed(
-                        "Reroll Complete",
-                        "The new winners have been selected and saved to the database. Could not find channel to announce.",
+                        "重新抽選完成",
+                        "已選出新的得獎者並儲存至資料庫。但找不到頻道以發布公告。",
                     ),
                 ],
                 flags: MessageFlags.Ephemeral,
@@ -155,11 +155,11 @@ export default {
                 : null;
             if (existingPingMsg) {
                 await existingPingMsg.edit({
-                    content: `🔄 **GIVEAWAY REROLL** 🔄 New winners for **${giveaway.prize}**: ${winnerMentions}!`,
+                    content: `🔄 **抽獎重新抽選** 🔄 **${giveaway.prize}** 的新得獎者：${winnerMentions}！`,
                 });
             } else {
                 const newPingMsg = await channel.send({
-                    content: `🔄 **GIVEAWAY REROLL** 🔄 New winners for **${giveaway.prize}**: ${winnerMentions}!`,
+                    content: `🔄 **抽獎重新抽選** 🔄 **${giveaway.prize}** 的新得獎者：${winnerMentions}！`,
                 });
                 updatedGiveaway.winnerPingMessageId = newPingMsg.id;
             }
@@ -172,57 +172,57 @@ export default {
                     guildId: interaction.guildId,
                     eventType: EVENT_TYPES.GIVEAWAY_REROLL,
                     data: {
-                        description: `Giveaway rerolled: ${giveaway.prize}`,
+                        description: `已重新抽選抽獎活動：${giveaway.prize}`,
                         channelId: giveaway.channelId,
                         userId: interaction.user.id,
                         fields: [
                             {
-                                name: 'Prize',
-                                value: giveaway.prize || 'Mystery Prize!',
+                                name: '獎品',
+                                value: giveaway.prize || '神秘獎品！',
                                 inline: true
                             },
                             {
-                                name: 'New Winners',
+                                name: '新得獎者',
                                 value: winnerMentions,
                                 inline: false
                             },
                             {
-                                name: 'Total Entries',
+                                name: '總參與人數',
                                 value: participants.length.toString(),
                                 inline: true
                             }
-                        ]
-                    }
-                });
-            } catch (logError) {
-                logger.debug('Error logging giveaway reroll:', logError);
-            }
+                      ]
+                  }
+              });
+          } catch (logError) {
+              logger.debug('Error logging giveaway reroll:', logError);
+          }
 
-            return InteractionHelper.safeReply(interaction, {
+          return InteractionHelper.safeReply(interaction, {
                 embeds: [
                     successEmbed(
-                        "Reroll Complete",
-                        `The new winners have been announced in ${channel}. (Original message not found).`,
+                        "重新抽選完成",
+                        `已在 ${channel} 公布新得獎者。（找不到原始訊息）。`,
                     ),
                 ],
                 flags: MessageFlags.Ephemeral,
-            });
-        }
+          });
+      }
 
         await saveGiveaway(
             interaction.client,
             interaction.guildId,
             updatedGiveaway,
-        );
+      );
 
         const newEmbed = createGiveawayEmbed(updatedGiveaway, "reroll", newWinners);
         const newRow = createGiveawayButtons(true);
 
         await message.edit({
-            content: "🔄 **GIVEAWAY REROLLED** 🔄",
+            content: "🔄 **抽獎已重新抽選** 🔄",
             embeds: [newEmbed],
             components: [newRow],
-        });
+      });
 
         const winnerMentions = newWinners
             .map((id) => `<@${id}>`)
@@ -233,11 +233,11 @@ export default {
             : null;
         if (existingPingMsg) {
             await existingPingMsg.edit({
-                content: `🔄 **REROLL WINNERS** 🔄 CONGRATULATIONS ${winnerMentions}! You are the new winner(s) for the **${giveaway.prize}** giveaway! Please contact the host <@${giveaway.hostId}> to claim your prize.`,
+                content: `🔄 **重新抽選得獎者** 🔄 恭喜 ${winnerMentions}！你們是 **${giveaway.prize}** 抽獎活動的新得獎者！請聯絡主辦人 <@${giveaway.hostId}> 來領取您的獎品。`,
             });
         } else {
             const newPingMsg = await channel.send({
-                content: `🔄 **REROLL WINNERS** 🔄 CONGRATULATIONS ${winnerMentions}! You are the new winner(s) for the **${giveaway.prize}** giveaway! Please contact the host <@${giveaway.hostId}> to claim your prize.`,
+                content: `🔄 **重新抽選得獎者** 🔄 恭喜 ${winnerMentions}！你們是 **${giveaway.prize}** 抽獎活動的新得獎者！請聯絡主辦人 <@${giveaway.hostId}> 來領取您的獎品。`,
             });
             updatedGiveaway.winnerPingMessageId = newPingMsg.id;
         }
@@ -250,28 +250,28 @@ export default {
                 guildId: interaction.guildId,
                 eventType: EVENT_TYPES.GIVEAWAY_REROLL,
                 data: {
-                    description: `Giveaway rerolled: ${giveaway.prize}`,
+                    description: `已重新抽選抽獎活動：${giveaway.prize}`,
                     channelId: giveaway.channelId,
                     userId: interaction.user.id,
                     fields: [
                         {
-                            name: 'Prize',
-                            value: giveaway.prize || 'Mystery Prize!',
+                            name: '獎品',
+                            value: giveaway.prize || '神秘獎品！',
                             inline: true
                         },
                         {
-                            name: 'New Winners',
+                            name: '新得獎者',
                             value: winnerMentions,
                             inline: false
                         },
                         {
-                            name: 'Total Entries',
+                            name: '總參與人數',
                             value: participants.length.toString(),
                             inline: true
                         }
                     ]
                 }
-            });
+          });
         } catch (logError) {
             logger.debug('Error logging giveaway reroll event:', logError);
         }
@@ -279,11 +279,11 @@ export default {
         return InteractionHelper.safeReply(interaction, {
             embeds: [
                 successEmbed(
-                    "Reroll Successful ✅",
-                    `Successfully rerolled the giveaway for **${giveaway.prize}** in ${channel}. Selected ${newWinners.length} new winner(s).`,
+                    "重新抽選成功 ✅",
+                    `已成功重新抽選位於 ${channel} 的 **${giveaway.prize}** 抽獎活動。選出了 ${newWinners.length} 位新得獎者。`,
                 ),
             ],
             flags: MessageFlags.Ephemeral,
-        });
+      });
     },
 };
