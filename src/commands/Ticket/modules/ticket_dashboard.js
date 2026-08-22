@@ -40,7 +40,7 @@ function buildButtonRow(guildConfig, guildId, disabled = false, panelStatus = nu
         buttons.push(
             new ButtonBuilder()
                 .setCustomId(`ticket_cfg_repost_${guildId}`)
-                .setLabel('Repost Panel')
+                .setLabel('重新發佈面板')
                 .setStyle(ButtonStyle.Primary)
                 .setEmoji('📌')
                 .setDisabled(disabled),
@@ -50,19 +50,19 @@ function buildButtonRow(guildConfig, guildId, disabled = false, panelStatus = nu
     buttons.push(
         new ButtonBuilder()
             .setCustomId(`ticket_cfg_dm_toggle_${guildId}`)
-            .setLabel('DM on Close')
+            .setLabel('關閉時私訊')
             .setStyle(dmEnabled ? ButtonStyle.Success : ButtonStyle.Danger)
             .setEmoji(dmEnabled ? '📬' : '📭')
             .setDisabled(disabled),
         new ButtonBuilder()
             .setCustomId(`ticket_cfg_staff_role_btn_${guildId}`)
-            .setLabel('Staff Role')
+            .setLabel('客服人員身分組')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('🛡️')
             .setDisabled(disabled),
         new ButtonBuilder()
             .setCustomId(`ticket_cfg_delete_${guildId}`)
-            .setLabel('Delete System')
+            .setLabel('刪除系統')
             .setStyle(ButtonStyle.Danger)
             .setEmoji('🗑️')
             .setDisabled(disabled),
@@ -81,8 +81,8 @@ async function persistPanelMessageId(client, guildId, guildConfig, messageId) {
 
 function buildPanelEmbed(config) {
     return new EmbedBuilder()
-        .setTitle('Support Tickets')
-        .setDescription(config.ticketPanelMessage || 'Click the button below to create a support ticket.')
+        .setTitle('支援客服單')
+        .setDescription(config.ticketPanelMessage || '點擊下方的按鈕以建立支援客服單。')
         .setColor(getColor('info'));
 }
 
@@ -90,7 +90,7 @@ function buildPanelButtonRow(config) {
     return new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId('create_ticket')
-            .setLabel(config.ticketButtonLabel || 'Create Ticket')
+            .setLabel(config.ticketButtonLabel || '建立客服單')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('📩'),
     );
@@ -100,9 +100,9 @@ async function repostTicketPanel(client, guild, guildConfig, guildId) {
     const channel = await guild.channels.fetch(guildConfig.ticketPanelChannelId).catch(() => null);
     if (!channel) {
         throw new TitanBotError(
-            'Panel channel missing',
+            '找不到面板頻道',
             ErrorTypes.CONFIGURATION,
-            'The configured ticket panel channel no longer exists. Set a new panel channel from the dashboard.',
+            '已設定的客服單面板頻道已不存在。請從儀表板設定新的面板頻道。',
         );
     }
 
@@ -116,102 +116,102 @@ async function repostTicketPanel(client, guild, guildConfig, guildId) {
 }
 
 function formatCloseDuration(ms) {
-    if (ms == null) return '`N/A`';
+    if (ms == null) return '`不適用`';
     const hours = Math.floor(ms / 3_600_000);
     const minutes = Math.floor((ms % 3_600_000) / 60_000);
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    return `${minutes}m`;
+    if (hours > 0) return `${hours}小時 ${minutes}分`;
+    return `${minutes}分`;
 }
 
 function buildDashboardEmbed(config, guild, panelStatus = null, ticketStats = null) {
-    const panelChannel = config.ticketPanelChannelId ? `<#${config.ticketPanelChannelId}>` : '`Not set`';
-    const staffRole = config.ticketStaffRoleId ? `<@&${config.ticketStaffRoleId}>` : '`Not set`';
-    const ticketLogsChannel = config.ticketLogsChannelId ? `<#${config.ticketLogsChannelId}>` : '`Not set`';
-    const transcriptChannel = config.ticketTranscriptChannelId ? `<#${config.ticketTranscriptChannelId}>` : '`Not set`';
+    const panelChannel = config.ticketPanelChannelId ? `<#${config.ticketPanelChannelId}>` : '`未設定`';
+    const staffRole = config.ticketStaffRoleId ? `<@&${config.ticketStaffRoleId}>` : '`未設定`';
+    const ticketLogsChannel = config.ticketLogsChannelId ? `<#${config.ticketLogsChannelId}>` : '`未設定`';
+    const transcriptChannel = config.ticketTranscriptChannelId ? `<#${config.ticketTranscriptChannelId}>` : '`未設定`';
 
     const openCategoryChannel = config.ticketCategoryId ? guild.channels.cache.get(config.ticketCategoryId) : null;
-    const openCategory = openCategoryChannel ? openCategoryChannel.toString() : '`Not set`';
+    const openCategory = openCategoryChannel ? openCategoryChannel.toString() : '`未設定`';
     
     const closedCategoryChannel = config.ticketClosedCategoryId ? guild.channels.cache.get(config.ticketClosedCategoryId) : null;
-    const closedCategory = closedCategoryChannel ? closedCategoryChannel.toString() : '`Not set`';
+    const closedCategory = closedCategoryChannel ? closedCategoryChannel.toString() : '`未設定`';
 
-    const rawMsg = config.ticketPanelMessage || 'Click the button below to create a support ticket.';
+    const rawMsg = config.ticketPanelMessage || '點擊下方的按鈕以建立支援客服單。';
     const panelMsg = `\`${rawMsg.length > 60 ? rawMsg.substring(0, 60) + '…' : rawMsg}\``;
-    const btnLabel = `\`${config.ticketButtonLabel || 'Create Ticket'}\``;
+    const btnLabel = `\`${config.ticketButtonLabel || '建立客服單'}\``;
 
     let panelStatusValue = formatPanelStatusField(panelStatus);
 
     const openTickets = ticketStats ? String(ticketStats.openCount) : '`—`';
     const avgCloseTime = ticketStats ? formatCloseDuration(ticketStats.avgCloseTimeMs) : '`—`';
     const feedbackSummary = ticketStats?.feedbackCount
-        ? `${ticketStats.avgRating}/5 (${ticketStats.feedbackCount} rating${ticketStats.feedbackCount !== 1 ? 's' : ''})`
-        : '`No ratings yet`';
+        ? `${ticketStats.avgRating}/5 (${ticketStats.feedbackCount} 個評價)`
+        : '`尚無評價`';
 
     return new EmbedBuilder()
-        .setTitle('🎫 Ticket System Dashboard')
-        .setDescription(`Manage ticket system settings for **${guild.name}**.\nSelect an option below to modify a setting.`)
+        .setTitle('🎫 客服單系統儀表板')
+        .setDescription(`管理 **${guild.name}** 的客服單系統設定。\n請在下方選擇一個選項以修改設定。`)
         .setColor(getColor('info'))
         .addFields(
-            { name: 'Panel Status', value: panelStatusValue, inline: false },
-            { name: 'Panel Channel', value: panelChannel, inline: true },
-            { name: 'Staff Role', value: staffRole, inline: true },
+            { name: '面板狀態', value: panelStatusValue, inline: false },
+            { name: '面板頻道', value: panelChannel, inline: true },
+            { name: '客服人員身分組', value: staffRole, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
-            { name: 'Open Tickets Category', value: openCategory, inline: true },
-            { name: 'Closed Tickets Category', value: closedCategory, inline: true },
+            { name: '開放中客服單類別', value: openCategory, inline: true },
+            { name: '已關閉客服單類別', value: closedCategory, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
-            { name: 'Panel Message', value: panelMsg, inline: false },
-            { name: 'Button Label', value: btnLabel, inline: true },
-            { name: 'Max Tickets/User', value: String(config.maxTicketsPerUser || 3), inline: true },
-            { name: 'DM on Close', value: config.dmOnClose !== false ? 'Enabled' : 'Disabled', inline: true },
-            { name: 'Ticket Logs Channel', value: ticketLogsChannel, inline: true },
-            { name: 'Transcript Channel', value: transcriptChannel, inline: true },
+            { name: '面板訊息', value: panelMsg, inline: false },
+            { name: '按鈕標籤', value: btnLabel, inline: true },
+            { name: '每位用戶最大客服單數', value: String(config.maxTicketsPerUser || 3), inline: true },
+            { name: '關閉時私訊', value: config.dmOnClose !== false ? '已啟用' : '已停用', inline: true },
+            { name: '客服單記錄頻道', value: ticketLogsChannel, inline: true },
+            { name: '對話記錄頻道', value: transcriptChannel, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
-            { name: 'Open Tickets', value: openTickets, inline: true },
-            { name: 'Avg Close Time', value: avgCloseTime, inline: true },
-            { name: 'Feedback Rating', value: feedbackSummary, inline: true },
+            { name: '開放中的客服單', value: openTickets, inline: true },
+            { name: '平均關閉時間', value: avgCloseTime, inline: true },
+            { name: '反饋評分', value: feedbackSummary, inline: true },
         )
-        .setFooter({ text: 'Select an option below • Dashboard closes after 10 minutes of inactivity' })
+        .setFooter({ text: '請在下方選擇一個選項 • 儀表板將在 10 分鐘無活動後關閉' })
         .setTimestamp();
 }
 
 function buildSelectMenu(guildId) {
     return new StringSelectMenuBuilder()
         .setCustomId(`ticket_config_${guildId}`)
-        .setPlaceholder('Select a setting to configure...')
+        .setPlaceholder('請選擇要設定的項目...')
         .addOptions(
             new StringSelectMenuOptionBuilder()
-                .setLabel('Edit Panel Message')
-                .setDescription('Change the message displayed on the ticket creation panel')
+                .setLabel('編輯面板訊息')
+                .setDescription('變更顯示在客服單建立面板上的訊息')
                 .setValue('panel_message')
                 .setEmoji('📝'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('Edit Button Label')
-                .setDescription('Change the label on the Create Ticket button')
+                .setLabel('編輯按鈕標籤')
+                .setDescription('變更「建立客服單」按鈕上的文字標籤')
                 .setValue('button_label')
                 .setEmoji('🏷️'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('Change Open Tickets Category')
-                .setDescription('Category where new tickets are created')
+                .setLabel('變更開放中客服單類別')
+                .setDescription('建立新客服單的分類頻道')
                 .setValue('open_category')
                 .setEmoji('📁'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('Change Closed Tickets Category')
-                .setDescription('Category where closed tickets are moved')
+                .setLabel('變更已關閉客服單類別')
+                .setDescription('移動已關閉客服單的分類頻道')
                 .setValue('closed_category')
                 .setEmoji('📂'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('Set Max Tickets per User')
-                .setDescription('Limit how many open tickets one user can have at once')
+                .setLabel('設定每位用戶最大客服單數')
+                .setDescription('限制單一用戶同時可擁有的開放客服單數量')
                 .setValue('max_tickets')
                 .setEmoji('🔢'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('Set Ticket Logs Channel')
-                .setDescription('Channel to receive ticket feedback, lifecycle events, and logs')
+                .setLabel('設定客服單記錄頻道')
+                .setDescription('接收客服單反饋、生命週期事件與記錄的頻道')
                 .setValue('logs_channel')
                 .setEmoji('🎫'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('Set Transcript Channel')
-                .setDescription('Channel to receive auto-generated transcripts on deletion')
+                .setLabel('設定對話記錄頻道')
+                .setDescription('當客服單刪除時接收自動產生對話記錄的頻道')
                 .setValue('transcript_channel')
                 .setEmoji('📜'),
         );
@@ -250,7 +250,7 @@ async function updateLivePanel(client, guild, config, guildId) {
         });
         return true;
     } catch (error) {
-        logger.warn('Failed to update live ticket panel:', error.message);
+        logger.warn('更新即時客服單面板失敗:', error.message);
         return false;
     }
 }
@@ -264,9 +264,9 @@ export default {
 
             if (!guildConfig.ticketPanelChannelId) {
                 throw new TitanBotError(
-                    'Ticket system not configured',
+                    '客服單系統尚未設定',
                     ErrorTypes.CONFIGURATION,
-                    'The ticket system has not been set up yet. Run `/ticket setup` first to configure it.',
+                    '客服單系統尚未進行設定。請先執行 `/ticket setup` 來進行設定。',
                 );
             }
 
@@ -333,11 +333,11 @@ export default {
             });
         } catch (error) {
             if (error instanceof TitanBotError) throw error;
-            logger.error('Unexpected error in ticket_config:', error);
+            logger.error('ticket_config 發生未預期的錯誤:', error);
             throw new TitanBotError(
-                `Ticket config failed: ${error.message}`,
+                `客服單設定失敗: ${error.message}`,
                 ErrorTypes.UNKNOWN,
-                'Failed to open the ticket configuration dashboard.',
+                '無法開啟客服單設定儀表板。',
             );
         }
     },
@@ -346,21 +346,21 @@ export default {
 async function handlePanelMessage(selectInteraction, rootInteraction, guildConfig, guildId, client) {
     const modal = new ModalBuilder()
         .setCustomId('ticket_cfg_panel_msg')
-        .setTitle('📝 Edit Panel Message')
+        .setTitle('📝 編輯面板訊息')
         .addComponents(
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('panel_msg_input')
-                    .setLabel('Panel Message')
+                    .setLabel('面板訊息')
                     .setStyle(TextInputStyle.Paragraph)
                     .setValue(
                         guildConfig.ticketPanelMessage ||
-                            'Click the button below to create a support ticket.',
+                            '點擊下方的按鈕以建立支援客服單。',
                     )
                     .setMaxLength(2000)
                     .setMinLength(1)
                     .setRequired(true)
-                    .setPlaceholder('Click the button below to create a support ticket.'),
+                    .setPlaceholder('點擊下方的按鈕以建立支援客服單。'),
             ),
         );
 
@@ -385,11 +385,11 @@ async function handlePanelMessage(selectInteraction, rootInteraction, guildConfi
     await submitted.reply({
         embeds: [
             successEmbed(
-                '✅ Panel Message Updated',
-                `The panel message has been updated.${
+                '✅ 已更新面板訊息',
+                `面板訊息已更新。${
                     panelUpdated
-                        ? '\nThe live ticket panel has also been refreshed.'
-                        : '\n> **Note:** The live panel could not be located. Use **Repost Panel** on the dashboard to restore it.'
+                        ? '\n即時客服單面板也已重新整理。'
+                        : '\n> **注意：** 找不到即時面板。請使用儀表板上的 **重新發佈面板** 來還原它。'
                 }`,
             ),
         ],
@@ -402,18 +402,18 @@ async function handlePanelMessage(selectInteraction, rootInteraction, guildConfi
 async function handleButtonLabel(selectInteraction, rootInteraction, guildConfig, guildId, client) {
     const modal = new ModalBuilder()
         .setCustomId('ticket_cfg_btn_label')
-        .setTitle('🏷️ Edit Button Label')
+        .setTitle('🏷️ 編輯按鈕標籤')
         .addComponents(
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('btn_label_input')
-                    .setLabel('Button Label (max 80 characters)')
+                    .setLabel('按鈕標籤（最多 80 個字元）')
                     .setStyle(TextInputStyle.Short)
-                    .setValue(guildConfig.ticketButtonLabel || 'Create Ticket')
+                    .setValue(guildConfig.ticketButtonLabel || '建立客服單')
                     .setMaxLength(80)
                     .setMinLength(1)
                     .setRequired(true)
-                    .setPlaceholder('Create Ticket'),
+                    .setPlaceholder('建立客服單'),
             ),
         );
 
@@ -438,11 +438,11 @@ async function handleButtonLabel(selectInteraction, rootInteraction, guildConfig
     await submitted.reply({
         embeds: [
             successEmbed(
-                '✅ Button Label Updated',
-                `Button label changed to \`${newLabel}\`.${
+                '✅ 已更新按鈕標籤',
+                `按鈕標籤已變更為 \`${newLabel}\`。${
                     panelUpdated
-                        ? '\nThe live ticket panel button has also been updated.'
-                        : '\n> **Note:** The live panel could not be located. Use **Repost Panel** on the dashboard to restore it.'
+                        ? '\n即時客服單面板按鈕也已更新。'
+                        : '\n> **注意：** 找不到即時面板。請使用儀表板上的 **重新發佈面板** 來還原它。'
                 }`,
             ),
         ],
@@ -457,7 +457,7 @@ async function handleStaffRole(selectInteraction, rootInteraction, guildConfig, 
 
     const roleSelect = new RoleSelectMenuBuilder()
         .setCustomId('ticket_cfg_staff_role')
-        .setPlaceholder('Select the staff role...')
+        .setPlaceholder('請選擇客服人員身分組...')
         .setMaxValues(1);
 
     const row = new ActionRowBuilder().addComponents(roleSelect);
@@ -465,9 +465,9 @@ async function handleStaffRole(selectInteraction, rootInteraction, guildConfig, 
     await selectInteraction.followUp({
         embeds: [
             new EmbedBuilder()
-                .setTitle('🛡️ Change Staff Role')
+                .setTitle('🛡️ 變更客服人員身分組')
                 .setDescription(
-                    `**Current:** ${guildConfig.ticketStaffRoleId ? `<@&${guildConfig.ticketStaffRoleId}>` : '`Not set`'}\n\nSelect the role that should have staff access to manage tickets.`,
+                    `**目前設定：** ${guildConfig.ticketStaffRoleId ? `<@&${guildConfig.ticketStaffRoleId}>` : '`未設定`'}\n\n請選擇擁有客服權限以管理客服單的身分組。`,
                 )
                 .setColor(getColor('info')),
         ],
@@ -491,7 +491,7 @@ async function handleStaffRole(selectInteraction, rootInteraction, guildConfig, 
         await setGuildConfig(client, guildId, guildConfig);
 
         await roleInteraction.followUp({
-            embeds: [successEmbed('Staff Role Updated', `Staff role set to ${role}.`)],
+            embeds: [successEmbed('已更新客服人員身分組', `客服人員身分組已設定為 ${role}。`)],
             flags: MessageFlags.Ephemeral,
         });
 
@@ -502,7 +502,7 @@ async function handleStaffRole(selectInteraction, rootInteraction, guildConfig, 
         if (reason === 'time' && collected.size === 0) {
             replyUserError(selectInteraction, {
                 type: ErrorTypes.RATE_LIMIT,
-                message: 'No role was selected. The staff role was not changed.',
+                message: '未選擇任何身分組。客服人員身分組未被更改。',
             }).catch(() => {});
         }
     });
@@ -513,16 +513,16 @@ async function handleOpenCategory(selectInteraction, rootInteraction, guildConfi
 
     const channelSelect = new ChannelSelectMenuBuilder()
         .setCustomId('ticket_cfg_open_cat')
-        .setPlaceholder('Select a category...')
+        .setPlaceholder('請選擇一個分類頻道...')
         .addChannelTypes(ChannelType.GuildCategory)
         .setMaxValues(1);
 
     await selectInteraction.followUp({
         embeds: [
             new EmbedBuilder()
-                .setTitle('📁 Change Open Tickets Category')
+                .setTitle('📁 變更開放中客服單類別')
                 .setDescription(
-                    `**Current:** ${guildConfig.ticketCategoryId ? `<#${guildConfig.ticketCategoryId}>` : '`Not set`'}\n\nSelect the category where new tickets will be created.`,
+                    `**目前設定：** ${guildConfig.ticketCategoryId ? `<#${guildConfig.ticketCategoryId}>` : '`未設定`'}\n\n請選擇將建立新客服單的分類頻道。`,
                 )
                 .setColor(getColor('info')),
         ],
@@ -548,8 +548,8 @@ async function handleOpenCategory(selectInteraction, rootInteraction, guildConfi
         await catInteraction.followUp({
             embeds: [
                 successEmbed(
-                    'Open Category Updated',
-                    `New tickets will now be created in **${category.name}**.`,
+                    '已更新開放類別',
+                    `新客服單將會在 **${category.name}** 中建立。`,
                 ),
             ],
             flags: MessageFlags.Ephemeral,
@@ -562,7 +562,7 @@ async function handleOpenCategory(selectInteraction, rootInteraction, guildConfi
         if (reason === 'time' && collected.size === 0) {
             replyUserError(selectInteraction, {
                 type: ErrorTypes.RATE_LIMIT,
-                message: 'No category was selected. The setting was not changed.',
+                message: '未選擇任何分類。設定未被更改。',
             }).catch(() => {});
         }
     });
@@ -573,16 +573,16 @@ async function handleClosedCategory(selectInteraction, rootInteraction, guildCon
 
     const channelSelect = new ChannelSelectMenuBuilder()
         .setCustomId('ticket_cfg_closed_cat')
-        .setPlaceholder('Select a category...')
+        .setPlaceholder('請選擇一個分類頻道...')
         .addChannelTypes(ChannelType.GuildCategory)
         .setMaxValues(1);
 
     await selectInteraction.followUp({
         embeds: [
             new EmbedBuilder()
-                .setTitle('📂 Change Closed Tickets Category')
+                .setTitle('📂 變更已關閉客服單類別')
                 .setDescription(
-                    `**Current:** ${guildConfig.ticketClosedCategoryId ? `<#${guildConfig.ticketClosedCategoryId}>` : '`Not set`'}\n\nSelect the category where closed tickets will be moved.`,
+                    `**目前設定：** ${guildConfig.ticketClosedCategoryId ? `<#${guildConfig.ticketClosedCategoryId}>` : '`未設定`'}\n\n請選擇將移動已關閉客服單的分類頻道。`,
                 )
                 .setColor(getColor('info')),
         ],
@@ -608,8 +608,8 @@ async function handleClosedCategory(selectInteraction, rootInteraction, guildCon
         await catInteraction.followUp({
             embeds: [
                 successEmbed(
-                    'Closed Category Updated',
-                    `Closed tickets will now be moved to **${category.name}**.`,
+                    '已更新關閉類別',
+                    `已關閉的客服單將會移動至 **${category.name}**。`,
                 ),
             ],
             flags: MessageFlags.Ephemeral,
@@ -622,7 +622,7 @@ async function handleClosedCategory(selectInteraction, rootInteraction, guildCon
         if (reason === 'time' && collected.size === 0) {
             replyUserError(selectInteraction, {
                 type: ErrorTypes.RATE_LIMIT,
-                message: 'No category was selected. The setting was not changed.',
+                message: '未選擇任何分類。設定未被更改。',
             }).catch(() => {});
         }
     });
@@ -631,12 +631,12 @@ async function handleClosedCategory(selectInteraction, rootInteraction, guildCon
 async function handleMaxTickets(selectInteraction, rootInteraction, guildConfig, guildId, client) {
     const modal = new ModalBuilder()
         .setCustomId('ticket_cfg_max_tickets')
-        .setTitle('Set Max Tickets per User')
+        .setTitle('設定每位用戶最大客服單數')
         .addComponents(
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('max_tickets_input')
-                    .setLabel('Max Open Tickets (1–10)')
+                    .setLabel('最大開放客服單數（1–10）')
                     .setStyle(TextInputStyle.Short)
                     .setValue(String(guildConfig.maxTicketsPerUser || 3))
                     .setMaxLength(2)
@@ -664,7 +664,7 @@ async function handleMaxTickets(selectInteraction, rootInteraction, guildConfig,
     if (Number.isNaN(newMax) || newMax < 1 || newMax > 10) {
         await replyUserError(submitted, {
             type: ErrorTypes.VALIDATION,
-            message: 'Max tickets must be a whole number between **1** and **10**.',
+            message: '最大客服單數必須是介於 **1** 到 **10** 之間的整數。',
         });
         return;
     }
@@ -675,8 +675,8 @@ async function handleMaxTickets(selectInteraction, rootInteraction, guildConfig,
     await submitted.reply({
         embeds: [
             successEmbed(
-                'Max Tickets Updated',
-                `Users can now have at most **${newMax}** open ticket${newMax !== 1 ? 's' : ''} at a time.`,
+                '已更新最大客服單數',
+                `用戶現在同時最多可以擁有 **${newMax}** 個開放中的客服單。`,
             ),
         ],
         flags: MessageFlags.Ephemeral,
@@ -695,8 +695,8 @@ async function handleDmOnClose(btnInteraction, rootInteraction, guildConfig, gui
     await btnInteraction.followUp({
         embeds: [
             successEmbed(
-                'DM on Close Updated',
-                `Users will **${newState ? 'now' : 'no longer'}** receive a DM when their ticket is closed.`,
+                '已更新關閉時私訊設定',
+                `當客服單關閉時，用戶**${newState ? '將會' : '將不再'}**收到私人訊息。`,
             ),
         ],
         flags: MessageFlags.Ephemeral,
@@ -710,15 +710,15 @@ async function handleLogsChannel(selectInteraction, rootInteraction, guildConfig
 
     const channelSelect = new ChannelSelectMenuBuilder()
         .setCustomId('ticket_cfg_logs_channel')
-        .setPlaceholder('Select a channel...')
+        .setPlaceholder('請選擇一個頻道...')
         .addChannelTypes(ChannelType.GuildText)
         .setMaxValues(1);
 
     await selectInteraction.followUp({
         embeds: [
             new EmbedBuilder()
-                .setTitle('🎫 Select Ticket Logs Channel')
-                .setDescription('Choose where ticket feedback, lifecycle events (open, close, claim, etc.), and other logs will be sent.')
+                .setTitle('🎫 選擇客服單記錄頻道')
+                .setDescription('選擇要發送客服單反饋、生命週期事件（開啟、關閉、認領等）以及其他記錄的頻道。')
                 .setColor(getColor('info')),
         ],
         components: [new ActionRowBuilder().addComponents(channelSelect)],
@@ -740,7 +740,7 @@ async function handleLogsChannel(selectInteraction, rootInteraction, guildConfig
         await setGuildConfig(client, guildId, guildConfig);
 
         await channelInteraction.followUp({
-            embeds: [successEmbed('Logs Channel Updated', `Ticket logs will be sent to ${channel}`)],
+            embeds: [successEmbed('已更新記錄頻道', `客服單記錄將會發送到 ${channel}`)],
             flags: MessageFlags.Ephemeral,
         });
 
@@ -751,7 +751,7 @@ async function handleLogsChannel(selectInteraction, rootInteraction, guildConfig
         if (reason === 'time' && collected.size === 0) {
             replyUserError(selectInteraction, {
                 type: ErrorTypes.RATE_LIMIT,
-                message: 'No channel selected. No changes were made.',
+                message: '未選擇頻道。未進行任何變更。',
             }).catch(() => {});
         }
     });
@@ -762,15 +762,15 @@ async function handleTranscriptChannel(selectInteraction, rootInteraction, guild
 
     const channelSelect = new ChannelSelectMenuBuilder()
         .setCustomId('ticket_cfg_transcript_channel')
-        .setPlaceholder('Select a channel...')
+        .setPlaceholder('請選擇一個頻道...')
         .addChannelTypes(ChannelType.GuildText)
         .setMaxValues(1);
 
     await selectInteraction.followUp({
         embeds: [
             new EmbedBuilder()
-                .setTitle('📜 Select Transcript Channel')
-                .setDescription('Choose where auto-generated transcripts will be sent when tickets are deleted.')
+                .setTitle('📜 選擇對話記錄頻道')
+                .setDescription('選擇當客服單被刪除時，要發送自動產生對話記錄的頻道。')
                 .setColor(getColor('info'))
         ],
         components: [new ActionRowBuilder().addComponents(channelSelect)],
@@ -792,7 +792,7 @@ async function handleTranscriptChannel(selectInteraction, rootInteraction, guild
         await setGuildConfig(client, guildId, guildConfig);
 
         await channelInteraction.followUp({
-            embeds: [successEmbed('Transcript Channel Updated', `Transcripts will be sent to ${channel}`)],
+            embeds: [successEmbed('已更新對話記錄頻道', `對話記錄將會發送到 ${channel}`)],
             flags: MessageFlags.Ephemeral
         });
 
@@ -803,7 +803,7 @@ async function handleTranscriptChannel(selectInteraction, rootInteraction, guild
         if (reason === 'time' && collected.size === 0) {
             replyUserError(selectInteraction, {
                 type: ErrorTypes.RATE_LIMIT,
-                message: 'No channel selected. No changes were made.',
+                message: '未選擇頻道。未進行任何變更。',
             }).catch(() => {});
         }
     });
@@ -814,7 +814,7 @@ async function handleCheckUser(selectInteraction, rootInteraction, guildConfig, 
 
     const userSelect = new UserSelectMenuBuilder()
         .setCustomId('ticket_cfg_check_user')
-        .setPlaceholder('Select a user to check...')
+        .setPlaceholder('請選擇要檢查的用戶...')
         .setMaxValues(1);
 
     const row = new ActionRowBuilder().addComponents(userSelect);
@@ -822,8 +822,8 @@ async function handleCheckUser(selectInteraction, rootInteraction, guildConfig, 
     await selectInteraction.followUp({
         embeds: [
             new EmbedBuilder()
-                .setTitle('Check User Tickets')
-                .setDescription('Select a user to view their current open ticket count.')
+                .setTitle('檢查用戶客服單')
+                .setDescription('選擇一位用戶以檢視他們目前開放中的客服單數量。')
                 .setColor(getColor('info')),
         ],
         components: [row],
@@ -848,13 +848,13 @@ async function handleCheckUser(selectInteraction, rootInteraction, guildConfig, 
         await userInteraction.followUp({
             embeds: [
                 new EmbedBuilder()
-                    .setTitle(`Ticket Check — ${targetUser.username}`)
+                    .setTitle(`客服單檢查 — ${targetUser.username}`)
                     .setDescription(
-                        `**Open Tickets:** ${openCount} / ${maxTickets}\n` +
-                            `**Remaining:** ${Math.max(0, maxTickets - openCount)}\n\n` +
+                        `**開放中的客服單：** ${openCount} / ${maxTickets}\n` +
+                            `**剩餘額度：** ${Math.max(0, maxTickets - openCount)}\n\n` +
                             (atLimit
-                                ? '⚠️ This user has reached their ticket limit.'
-                                : '✅ This user can still open more tickets.'),
+                                ? '⚠️ 此用戶已達到客服單上限。'
+                                : '✅ 此用戶還可以開啟更多客服單。'),
                     )
                     .setColor(atLimit ? getColor('error') : getColor('success'))
                     .setThumbnail(targetUser.displayAvatarURL({ size: 64 }))
@@ -868,7 +868,7 @@ async function handleCheckUser(selectInteraction, rootInteraction, guildConfig, 
         if (reason === 'time' && collected.size === 0) {
             replyUserError(selectInteraction, {
                 type: ErrorTypes.RATE_LIMIT,
-                message: 'No user was selected.',
+                message: '未選擇任何用戶。',
             }).catch(() => {});
         }
     });
@@ -880,7 +880,7 @@ async function handleRepostPanel(btnInteraction, rootInteraction, guildConfig, g
     const panelStatus = await getTicketPanelStatus(client, rootInteraction.guild, guildConfig);
     if (panelStatus.exists) {
         await btnInteraction.followUp({
-            embeds: [infoEmbed('Panel Already Active', 'The ticket panel is already posted in the configured channel.')],
+            embeds: [infoEmbed('面板已處於啟用狀態', '客服單面板已經發佈在設定的頻道中了。')],
             flags: MessageFlags.Ephemeral,
         }).catch(() => {});
         await refreshDashboard(rootInteraction, guildConfig, guildId, client);
@@ -892,9 +892,9 @@ async function handleRepostPanel(btnInteraction, rootInteraction, guildConfig, g
     await btnInteraction.followUp({
         embeds: [
             successEmbed(
-                'Panel Reposted',
-                `A new ticket panel was posted in <#${guildConfig.ticketPanelChannelId}>.${
-                    sentPanel.url ? `\n[Open panel message](${sentPanel.url})` : ''
+                '已重新發佈面板',
+                `新的客服單面板已發佈至 <#${guildConfig.ticketPanelChannelId}>。${
+                    sentPanel.url ? `\n[開啟面板訊息](${sentPanel.url})` : ''
                 }`,
             ),
         ],
@@ -907,12 +907,12 @@ async function handleRepostPanel(btnInteraction, rootInteraction, guildConfig, g
 async function handleDeleteSystem(btnInteraction, rootInteraction, guildConfig, guildId, client) {
     const deleteModal = new ModalBuilder()
         .setCustomId('ticket_delete_confirm_modal')
-        .setTitle('Delete Ticket System')
+        .setTitle('刪除客服單系統')
         .addComponents(
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('delete_confirmation')
-                    .setLabel('Type "DELETE" to confirm')
+                    .setLabel('請輸入 "DELETE" 以確認')
                     .setStyle(TextInputStyle.Short)
                     .setPlaceholder('DELETE')
                     .setMaxLength(6)
@@ -938,7 +938,7 @@ async function handleDeleteSystem(btnInteraction, rootInteraction, guildConfig, 
     const confirmation = submitted.fields.getTextInputValue('delete_confirmation').trim();
 
     if (confirmation !== 'DELETE') {
-        await replyUserError(submitted, { type: ErrorTypes.UNKNOWN, message: 'You must type "DELETE" exactly to confirm deletion.' });
+        await replyUserError(submitted, { type: ErrorTypes.UNKNOWN, message: '您必須精確輸入 "DELETE" 來確認刪除。' });
         await refreshDashboard(rootInteraction, guildConfig, guildId, client);
         return;
     }
@@ -976,7 +976,7 @@ async function handleDeleteSystem(btnInteraction, rootInteraction, guildConfig, 
                 }
             }
         } catch (panelDeleteError) {
-            logger.warn('Could not delete ticket panel message:', panelDeleteError.message);
+            logger.warn('無法刪除客服單面板訊息:', panelDeleteError.message);
         }
     }
 
@@ -989,7 +989,7 @@ async function handleDeleteSystem(btnInteraction, rootInteraction, guildConfig, 
             );
         }
     } catch (ticketDeleteError) {
-        logger.warn('Could not clear ticket records from database:', ticketDeleteError.message);
+        logger.warn('無法從資料庫中清除客服單記錄:', ticketDeleteError.message);
     }
 
     for (const key of keysToDelete) {
@@ -1000,8 +1000,8 @@ async function handleDeleteSystem(btnInteraction, rootInteraction, guildConfig, 
     await submitted.followUp({
         embeds: [
             successEmbed(
-                '✅ Ticket System Deleted',
-                'All ticket system configuration has been cleared. Run `/ticket setup` to set it up again.',
+                '✅ 已刪除客服單系統',
+                '所有客服單系統設定已被清除。請執行 `/ticket setup` 再次進行設定。',
             ),
         ],
         flags: MessageFlags.Ephemeral,
@@ -1010,8 +1010,8 @@ async function handleDeleteSystem(btnInteraction, rootInteraction, guildConfig, 
     await InteractionHelper.safeEditReply(rootInteraction, {
         embeds: [
             new EmbedBuilder()
-                .setTitle('Ticket System Deleted')
-                .setDescription('The ticket system configuration has been cleared.')
+                .setTitle('客服單系統已刪除')
+                .setDescription('客服單系統設定已被清除。')
                 .setColor(getColor('error'))
                 .setTimestamp(),
         ],
