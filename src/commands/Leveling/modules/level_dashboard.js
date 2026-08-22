@@ -415,7 +415,7 @@ async function handleChannel(selectInteraction, rootInteraction, cfg, guildId, c
     await saveLevelingConfig(client, guildId, cfg);
 
     await submitted.reply({
-        embeds: [successEmbed('\u2705 Channel Updated', `Level-up notifications will now be sent in ${channel ??`<#${channelId}>`}.`)],
+        embeds: [successEmbed('\u2705 Channel Updated', `Level-up notifications will now be sent in ${channel ?? `<#${channelId}>`}.`)],
         flags: MessageFlags.Ephemeral,
     });
 
