@@ -16,33 +16,33 @@ function createAutoroleInfoEmbed(description) {
 export default {
     data: new SlashCommandBuilder()
         .setName('autorole')
-        .setDescription('Manage roles that are automatically assigned to new members')
+        .setDescription('管理新成員加入時自動分配的身分組')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .addSubcommand(subcommand =>
             subcommand
                 .setName('add')
-                .setDescription('Add a role to be automatically assigned to new members')
+                .setDescription('新增一個在新成員加入時自動分配的身分組')
                 .addRoleOption(option =>
                     option.setName('role')
-                        .setDescription('The role to add')
+                        .setDescription('要新增的身分組')
                         .setRequired(true)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('remove')
-                .setDescription('Remove a role from auto-assignment')
+                .setDescription('從自動分配中移除一個身分組')
                 .addRoleOption(option =>
                     option.setName('role')
-                        .setDescription('The role to remove')
+                        .setDescription('要移除的身分組')
                         .setRequired(true)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('list')
-                .setDescription('List all auto-assigned roles')),
+                .setDescription('列出所有自動分配的身分組')),
 
     async execute(interaction) {
         const deferSuccess = await InteractionHelper.safeDefer(interaction);
         if (!deferSuccess) {
-            logger.warn(`Autorole interaction defer failed`, {
+            logger.warn(`自動身分組互動延遲 (defer) 失敗`, {
                 userId: interaction.user.id,
                 guildId: interaction.guildId,
                 commandName: 'autorole'
@@ -51,7 +51,7 @@ export default {
         }
 
         if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the **Manage Server** permission to use `/autorole`.' });
+            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: '你需要**管理伺服器 (Manage Server)** 權限才能使用 `/autorole`。' });
         }
 
         const { options, guild, client } = interaction;
@@ -63,8 +63,8 @@ export default {
             // 已經移除原本會檢查並阻擋驗證系統 / AutoVerify 的限制程式碼
             
             if (role.position >= guild.members.me.roles.highest.position) {
-                logger.warn(`[Autorole] User ${interaction.user.tag} tried to add role ${role.name} (${role.id}) higher than bot's highest role in ${guild.name}`);
-                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'I can\'t assign roles that are higher than my highest role.' });
+                logger.warn(`[自動身分組] 用戶 ${interaction.user.tag} 嘗試在 ${guild.name} 新增高於或等於機器人最高身分組的 ${role.name} (${role.id})`);
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '我無法分配高於或等於我最高身分組的身分組。' });
             }
 
             try {
@@ -72,13 +72,13 @@ export default {
                 const existingRoles = Array.isArray(config.roleIds) ? config.roleIds : [];
 
                 if (existingRoles.includes(role.id)) {
-                    logger.info(`[Autorole] User ${interaction.user.tag} tried to add duplicate role ${role.name} (${role.id}) in ${guild.name}`);
-                    return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `The role ${role} is already set to be auto-assigned.` });
+                    logger.info(`[自動身分組] 用戶 ${interaction.user.tag} 嘗試在 ${guild.name} 新增重複的身分組 ${role.name} (${role.id})`);
+                    return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `身分組 ${role} 已經設定為自動分配了。` });
                 }
 
                 // 限制最多設定 10 個自動身分組（可自行調整上限）
                 if (existingRoles.length >= 10) {
-                    return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'You can only have a maximum of 10 auto-assigned roles.' });
+                    return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: '你最多只能設定 10 個自動分配身分組。' });
                 }
 
                 const updatedRoles = [...existingRoles, role.id];
@@ -87,14 +87,14 @@ export default {
                     roleIds: updatedRoles
                 });
 
-                logger.info(`[Autorole] Added auto-role ${role.name} (${role.id}) in ${guild.name} by ${interaction.user.tag}`);
+                logger.info(`[自動身分組] ${interaction.user.tag} 在 ${guild.name} 新增了自動身分組 ${role.name} (${role.id})`);
                 await InteractionHelper.safeEditReply(interaction, {
-                    embeds: [createAutoroleInfoEmbed(`✅ Added ${role} to auto-assigned roles. Total auto-roles: **${updatedRoles.length}**`)],
+                    embeds: [createAutoroleInfoEmbed(`✅ 已將 ${role} 新增至自動分配身分組。目前自動身分組總數：**${updatedRoles.length}**`)],
                     flags: MessageFlags.Ephemeral
                 });
             } catch (error) {
-                logger.error(`[Autorole] Failed to add role for guild ${guild.id}:`, error);
-                await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while adding the role. Please try again.' });
+                logger.error(`[自動身分組] 為伺服器 ${guild.id} 新增身分組失敗：`, error);
+                await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '新增身分組時發生錯誤，請稍後再試。' });
             }
         } 
         
@@ -106,8 +106,8 @@ export default {
                 const existingRoles = Array.isArray(config.roleIds) ? config.roleIds : [];
                 
                 if (!existingRoles.includes(role.id)) {
-                    logger.info(`[Autorole] User ${interaction.user.tag} tried to remove non-existent role ${role.name} (${role.id}) in ${guild.name}`);
-                    return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: `The role ${role} is not set to be auto-assigned.` });
+                    logger.info(`[自動身分組] 用戶 ${interaction.user.tag} 嘗試在 ${guild.name} 移除不存在的自動身分組 ${role.name} (${role.id})`);
+                    return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: `身分組 ${role} 並未設定為自動分配。` });
                 }
 
                 const updatedRoles = existingRoles.filter(id => id !== role.id);
@@ -116,14 +116,14 @@ export default {
                     roleIds: updatedRoles
                 });
 
-                logger.info(`[Autorole] Removed role ${role.name} (${role.id}) from auto-assign in ${guild.name} by ${interaction.user.tag}`);
+                logger.info(`[自動身分組] ${interaction.user.tag} 在 ${guild.name} 從自動分配中移除了身分組 ${role.name} (${role.id})`);
                 await InteractionHelper.safeEditReply(interaction, {
-                    embeds: [createAutoroleInfoEmbed(`✅ Removed ${role} from auto-assigned roles.`)],
+                    embeds: [createAutoroleInfoEmbed(`✅ 已從自動分配身分組中移除 ${role}。`)],
                     flags: MessageFlags.Ephemeral
                 });
             } catch (error) {
-                logger.error(`[Autorole] Failed to remove role for guild ${guild.id}:`, error);
-                await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while removing the role. Please try again.' });
+                logger.error(`[自動身分組] 為伺服器 ${guild.id} 移除身分組失敗：`, error);
+                await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '移除身分組時發生錯誤，請稍後再試。' });
             }
         } 
         
@@ -133,8 +133,8 @@ export default {
                 const verificationEnabled = Boolean(guildConfig.verification?.enabled);
                 const autoVerifyEnabled = Boolean(guildConfig.verification?.autoVerify?.enabled);
                 const conflictSummary = [
-                    verificationEnabled ? 'Verification system is enabled' : null,
-                    autoVerifyEnabled ? 'AutoVerify is enabled' : null
+                    verificationEnabled ? '驗證系統已啟用' : null,
+                    autoVerifyEnabled ? 'AutoVerify 已啟用' : null
                 ].filter(Boolean).join('\n');
 
                 const config = await getWelcomeConfig(client, guild.id);
@@ -142,7 +142,7 @@ export default {
 
                 if (autoRoles.length === 0) {
                     return InteractionHelper.safeEditReply(interaction, {
-                        embeds: [createAutoroleInfoEmbed(`ℹ️ No roles are set to be auto-assigned.${conflictSummary ? `\n\n⚠️ Info (Systems active):\n${conflictSummary}` : ''}`)],
+                        embeds: [createAutoroleInfoEmbed(`ℹ️ 目前沒有設定任何自動分配的身分組。${conflictSummary ? `\n\n⚠️ 提示（目前啟用的系統）：\n${conflictSummary}` : ''}`)],
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -161,7 +161,7 @@ export default {
                 }
 
                 if (invalidRoleIds.length > 0) {
-                    logger.info(`[Autorole] Cleaning up ${invalidRoleIds.length} invalid role(s) from guild ${interaction.guild.name}`);
+                    logger.info(`[自動身分組] 正在從伺服器 ${interaction.guild.name} 清理 ${invalidRoleIds.length} 個失效的身分組`);
                     const updatedRoles = autoRoles.filter(id => !invalidRoleIds.includes(id));
                     await updateWelcomeConfig(client, guild.id, {
                         roleIds: updatedRoles
@@ -170,7 +170,7 @@ export default {
 
                 if (validRoles.length === 0) {
                     return InteractionHelper.safeEditReply(interaction, {
-                        embeds: [createAutoroleInfoEmbed(`ℹ️ No valid auto-roles found. Any invalid roles have been removed.${conflictSummary ? `\n\n⚠️ Info (Systems active):\n${conflictSummary}` : ''}`)],
+                        embeds: [createAutoroleInfoEmbed(`ℹ️ 找不到有效的自動身分組，所有失效的身分組已被清除。${conflictSummary ? `\n\n⚠️ 提示（目前啟用的系統）：\n${conflictSummary}` : ''}`)],
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -179,9 +179,9 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor(getColor('info'))
-                    .setTitle('Auto-Assigned Roles')
-                    .setDescription(`${roleMentions}${conflictSummary ? `\n\n⚠️ Info (Systems active):\n${conflictSummary}` : ''}`)
-                    .setFooter({ text: `Total configured auto-roles: ${validRoles.length}` });
+                    .setTitle('自動分配身分組')
+                    .setDescription(`${roleMentions}${conflictSummary ? `\n\n⚠️ 提示（目前啟用的系統）：\n${conflictSummary}` : ''}`)
+                    .setFooter({ text: `已設定的自動身分組總數：${validRoles.length}` });
 
                 await InteractionHelper.safeEditReply(interaction, {
                     embeds: [embed],
@@ -189,8 +189,8 @@ export default {
                 });
 
             } catch (error) {
-                logger.error(`[Autorole] Failed to list roles for guild ${guild.id}:`, error);
-                await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while listing auto-assigned roles. Please try again.' });
+                logger.error(`[自動身分組] 為伺服器 ${guild.id} 列出身分組失敗：`, error);
+                await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '列出自動分配身分組時發生錯誤，請稍後再試。' });
             }
         }
     },
