@@ -8,11 +8,11 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
     data: new SlashCommandBuilder()
         .setName("untimeout")
-        .setDescription("Remove timeout from a user")
+        .setDescription("解除使用者的禁言狀態 (Untimeout)")
         .addUserOption((option) =>
             option
                 .setName("target")
-                .setDescription("User to untimeout")
+                .setDescription("要解除禁言的使用者")
                 .setRequired(true),
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
@@ -36,7 +36,7 @@ export default {
             throw new TitanBotError(
                 'Missing target user',
                 ErrorTypes.USER_INPUT,
-                'You must specify a user to untimeout.',
+                '你必須指定要解除禁言的使用者。',
                 { subtype: 'invalid_user' },
             );
         }
@@ -45,7 +45,7 @@ export default {
             throw new TitanBotError(
                 "Target not found",
                 ErrorTypes.USER_INPUT,
-                "The target user is not currently in this server.",
+                "目標使用者目前不在本伺服器中。",
             );
         }
 
@@ -58,7 +58,7 @@ export default {
         await InteractionHelper.safeEditReply(interaction, {
             embeds: [
                 successEmbed(
-                    `🔓 **Removed timeout** from ${targetUser.tag}`,
+                    `🔓 **已解除禁言**：${targetUser.tag}`,
                 ),
             ],
         });
