@@ -15,12 +15,12 @@ export default {
     data: new SlashCommandBuilder()
         .setName("gend")
         .setDescription(
-            "Ends an active giveaway immediately and picks the winner(s).",
+            "立即結束進行中的抽獎活動並挑選得獎者。",
         )
         .addStringOption((option) =>
             option
                 .setName("messageid")
-                .setDescription("The message ID of the giveaway to end.")
+                .setDescription("要結束的抽獎訊息 ID。")
                 .setRequired(true),
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
@@ -30,7 +30,7 @@ export default {
             throw new TitanBotError(
                 'Giveaway command used outside guild',
                 ErrorTypes.VALIDATION,
-                'This command can only be used in a server.',
+                '此指令只能在伺服器中使用。',
                 { userId: interaction.user.id }
             );
         }
@@ -39,7 +39,7 @@ export default {
             throw new TitanBotError(
                 'User lacks ManageGuild permission',
                 ErrorTypes.PERMISSION,
-                "You need the 'Manage Server' permission to end a giveaway.",
+                "你需要「管理伺服器」權限才能結束抽獎活動。",
                 { userId: interaction.user.id, guildId: interaction.guildId }
             );
         }
@@ -52,7 +52,7 @@ export default {
             throw new TitanBotError(
                 'Invalid message ID format',
                 ErrorTypes.VALIDATION,
-                'Please provide a valid message ID.',
+                '請提供有效的訊息 ID。',
                 { providedId: messageId }
             );
         }
@@ -64,7 +64,7 @@ export default {
             throw new TitanBotError(
                 `Giveaway not found: ${messageId}`,
                 ErrorTypes.VALIDATION,
-                "No giveaway was found with that message ID in the database.",
+                "在資料庫中找不到具有該訊息 ID 的抽獎活動。",
                 { messageId, guildId: interaction.guildId }
             );
         }
@@ -90,7 +90,7 @@ export default {
             throw new TitanBotError(
                 `Channel not found: ${updatedGiveaway.channelId}`,
                 ErrorTypes.VALIDATION,
-                "Could not find the channel where the giveaway was hosted. The giveaway state has been updated.",
+                "找不到舉辦抽獎活動的頻道。抽獎狀態已更新。",
                 { channelId: updatedGiveaway.channelId, messageId }
             );
         }
@@ -106,7 +106,7 @@ export default {
             throw new TitanBotError(
                 `Message not found: ${messageId}`,
                 ErrorTypes.VALIDATION,
-                "Could not find the giveaway message. The giveaway state has been updated.",
+                "找不到抽獎訊息。抽獎狀態已更新。",
                 { messageId, channelId: updatedGiveaway.channelId }
             );
         }
@@ -121,7 +121,7 @@ export default {
         const newRow = createGiveawayButtons(true);
 
         await message.edit({
-            content: "🎉 **GIVEAWAY ENDED** 🎉",
+            content: "🎉 **抽獎已結束** 🎉",
             embeds: [newEmbed],
             components: [newRow],
         });
@@ -131,7 +131,7 @@ export default {
                 .map((id) => `<@${id}>`)
                 .join(",");
             const winnerPingMsg = await channel.send({
-                content: `🎉 CONGRATULATIONS ${winnerMentions}! You won the **${updatedGiveaway.prize}** giveaway! Please contact the host <@${updatedGiveaway.hostId}> to claim your prize.`,
+                content: `🎉 恭喜 ${winnerMentions}！你們贏得了 **${updatedGiveaway.prize}** 的抽獎！請聯絡主辦人 <@${updatedGiveaway.hostId}> 來領取您的獎品。`,
             });
             updatedGiveaway.winnerPingMessageId = winnerPingMsg.id;
             await saveGiveaway(interaction.client, interaction.guildId, updatedGiveaway);
@@ -144,34 +144,34 @@ export default {
                     guildId: interaction.guildId,
                     eventType: EVENT_TYPES.GIVEAWAY_WINNER,
                     data: {
-                        description: `Giveaway ended with ${winners.length} winner(s)`,
+                        description: `抽獎已結束，共選出 ${winners.length} 位得獎者`,
                         channelId: channel.id,
                         userId: interaction.user.id,
                         fields: [
                             {
-                                name: 'Prize',
-                                value: updatedGiveaway.prize || 'Mystery Prize!',
+                                name: '獎品',
+                                value: updatedGiveaway.prize || '神秘獎品！',
                                 inline: true
                             },
                             {
-                                name: 'Winners',
+                                name: '得獎者',
                                 value: winnerMentions,
                                 inline: false
                             },
                             {
-                                name: 'Entries',
+                                name: '參與人數',
                                 value: endResult.participantCount.toString(),
                                 inline: true
                             }
-                        ]
-                    }
-                });
-            } catch (logError) {
-                logger.debug('Error logging giveaway winner event:', logError);
-            }
+                      ]
+                  }
+              });
+          } catch (logError) {
+              logger.debug('Error logging giveaway winner event:', logError);
+          }
         } else {
             await channel.send({
-                content: `The giveaway for **${updatedGiveaway.prize}** has ended with no valid entries.`,
+                content: `**${updatedGiveaway.prize}** 的抽獎活動已結束，沒有有效的參與者。`,
             });
             logger.info(`Giveaway ended with no winners: ${messageId}`);
         }
@@ -181,8 +181,8 @@ export default {
         return InteractionHelper.safeReply(interaction, {
             embeds: [
                 successEmbed(
-                    "Giveaway Ended ✅",
-                    `Successfully ended the giveaway for **${updatedGiveaway.prize}** in ${channel}. Selected ${winners.length} winner(s) from ${endResult.participantCount} entries.`,
+                    "抽獎已結束 ✅",
+                    `已成功結束位於 ${channel} 的 **${updatedGiveaway.prize}** 抽獎活動。從 ${endResult.participantCount} 位參與者中選出了 ${winners.length} 位得獎者。`,
                 ),
             ],
             flags: MessageFlags.Ephemeral,
