@@ -9,17 +9,17 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
   data: new SlashCommandBuilder()
     .setName('leveladd')
-    .setDescription('Add levels to a user')
+    .setDescription('為使用者增加等級')
     .addUserOption((option) =>
       option
         .setName('user')
-        .setDescription('The user to add levels to')
+        .setDescription('要增加等級的使用者')
         .setRequired(true)
     )
     .addIntegerOption((option) =>
       option
         .setName('levels')
-        .setDescription('Number of levels to add')
+        .setDescription('要增加的等級數量')
         .setRequired(true)
         .setMinValue(1)
     )
@@ -33,7 +33,7 @@ export default {
     const hasPermission = await checkUserPermissions(
       interaction,
       PermissionFlagsBits.ManageGuild,
-      'You need ManageGuild permission to use this command.'
+      '你需要 **管理伺服器 (ManageGuild)** 權限才能使用此指令。'
     );
     if (!hasPermission) return;
 
@@ -43,7 +43,7 @@ export default {
         embeds: [
           new EmbedBuilder()
             .setColor('#f1c40f')
-            .setDescription('The leveling system is currently disabled on this server.')
+            .setDescription('本伺服器目前已停用等級系統。')
         ],
         flags: MessageFlags.Ephemeral
       });
@@ -58,7 +58,7 @@ export default {
       throw new TitanBotError(
         `User ${targetUser.id} not found in this guild`,
         ErrorTypes.USER_INPUT,
-        'The specified user is not in this server.'
+        '指定的使用者不在本伺服器中。'
       );
     }
 
@@ -67,8 +67,8 @@ export default {
     await InteractionHelper.safeEditReply(interaction, {
       embeds: [
         createEmbed({
-          title: 'Levels Added',
-          description: `Successfully added ${levelsToAdd} levels to ${targetUser.tag}.\n**New Level:** ${userData.level}`,
+          title: '已增加等級',
+          description: `成功為 ${targetUser.tag} 增加了 ${levelsToAdd} 個等級。\n**目前新等級：** ${userData.level}`,
           color: 'success'
         })
       ]
