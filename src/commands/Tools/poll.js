@@ -8,54 +8,54 @@ const MAX_OPTIONS = 10;
 export default {
     data: new SlashCommandBuilder()
         .setName('poll')
-        .setDescription('Create a simple poll with up to 10 options')
+        .setDescription('建立一個最多包含 10 個選項的簡單投票')
         .addStringOption(option =>
             option.setName('question')
-                .setDescription('The poll question')
+                .setDescription('投票問題')
                 .setRequired(true))
         .addStringOption(option =>
             option.setName('option1')
-                .setDescription('First option')
+                .setDescription('第一個選項')
                 .setRequired(true))
         .addStringOption(option =>
             option.setName('option2')
-                .setDescription('Second option')
+                .setDescription('第二個選項')
                 .setRequired(true))
         .addStringOption(option =>
             option.setName('option3')
-                .setDescription('Third option (optional)')
+                .setDescription('第三個選項 (選填)')
                 .setRequired(false))
         .addStringOption(option =>
             option.setName('option4')
-                .setDescription('Fourth option (optional)')
+                .setDescription('第四個選項 (選填)')
                 .setRequired(false))
         .addStringOption(option =>
             option.setName('option5')
-                .setDescription('Fifth option (optional)')
+                .setDescription('第五個選項 (選填)')
                 .setRequired(false))
         .addStringOption(option =>
             option.setName('option6')
-                .setDescription('Sixth option (optional)')
+                .setDescription('第六個選項 (選填)')
                 .setRequired(false))
         .addStringOption(option =>
             option.setName('option7')
-                .setDescription('Seventh option (optional)')
+                .setDescription('第七個選項 (選填)')
                 .setRequired(false))
         .addStringOption(option =>
             option.setName('option8')
-                .setDescription('Eighth option (optional)')
+                .setDescription('第八個選項 (選填)')
                 .setRequired(false))
         .addStringOption(option =>
             option.setName('option9')
-                .setDescription('Ninth option (optional)')
+                .setDescription('第九個選項 (選填)')
                 .setRequired(false))
         .addStringOption(option =>
             option.setName('option10')
-                .setDescription('Tenth option (optional)')
+                .setDescription('第十個選項 (選填)')
                 .setRequired(false))
         .addBooleanOption(option =>
             option.setName('anonymous')
-                .setDescription('Make the poll anonymous (default: false)')
+                .setDescription('建立匿名投票 (預設：false)')
                 .setRequired(false)),
 
     async execute(interaction) {
@@ -88,13 +88,13 @@ export default {
         });
 
         if (isAnonymous) {
-            description += '\n*This is an anonymous poll. Votes are not tracked to users.*';
+            description += '\n*這是一個匿名投票。投票結果不會追蹤到使用者。*';
         } else {
-            description += '\n*React with the emoji to vote!*';
+            description += '\n*使用表情符號進行投票！*';
         }
 
         const embed = successEmbed(
-            `📊 ${isAnonymous ? 'Anonymous ' : ''}Poll`,
+            `📊 ${isAnonymous ? '匿名 ' : ''}投票`,
             description
         );
 
@@ -106,7 +106,7 @@ export default {
         }
 
         await InteractionHelper.safeEditReply(interaction, {
-            content: '✅ Poll created successfully!',
+            content: '✅ 投票建立成功！',
         });
     },
 };
