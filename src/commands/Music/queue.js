@@ -7,9 +7,9 @@ export default {
     category: 'Music',
     data: new SlashCommandBuilder()
         .setName('queue')
-        .setDescription('Show the current music queue')
+        .setDescription('顯示目前的音樂播放佇列 (Queue)')
         .addIntegerOption((opt) =>
-            opt.setName('page').setDescription('Page number').setMinValue(1),
+            opt.setName('page').setDescription('頁碼').setMinValue(1),
         ),
 
     async execute(interaction, config, client) {
