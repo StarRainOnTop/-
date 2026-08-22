@@ -6,12 +6,12 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
     data: new SlashCommandBuilder()
     .setName("avatar")
-    .setDescription("Display a user's avatar image")
+    .setDescription("顯示使用者的頭像圖片")
     .addUserOption((option) =>
       option
         .setName("target")
         .setDescription(
-          "The user whose avatar you want to see (defaults to you)",
+          "你想查看頭像的使用者 (預設為你自己)",
         ),
     ),
 
@@ -20,8 +20,8 @@ export default {
     const avatarUrl = user.displayAvatarURL({ size: 2048, dynamic: true });
 
     const embed = createEmbed({ 
-      title: `${user.username}'s Avatar`, 
-      description: `[Download Link](${avatarUrl})` 
+      title: `${user.username} 的頭像`, 
+      description: `[下載連結](${avatarUrl})` 
     })
       .setImage(avatarUrl);
 
