@@ -7,7 +7,7 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
   data: new SlashCommandBuilder()
     .setName('leaderboard')
-    .setDescription("Shows the server's level leaderboard")
+    .setDescription("顯示伺服器的等級排行榜")
     .setDMPermission(false),
   category: 'Leveling',
 
@@ -21,7 +21,7 @@ export default {
         embeds: [
           new EmbedBuilder()
             .setColor('#f1c40f')
-            .setDescription('The leveling system is currently disabled on this server.')
+            .setDescription('本伺服器目前已關閉等級系統。')
         ],
         flags: MessageFlags.Ephemeral
       });
@@ -34,14 +34,14 @@ export default {
       throw new TitanBotError(
         'No leaderboard data found',
         ErrorTypes.DATABASE,
-        'No level data found yet. Start chatting to gain XP!'
+        '尚未找到等級資料。快去聊天來獲得經驗值（XP）吧！'
       );
     }
 
     const embed = new EmbedBuilder()
-      .setTitle('Level Leaderboard')
+      .setTitle('等級排行榜')
       .setColor('#2ecc71')
-      .setDescription("Top 10 most active members in this server:")
+      .setDescription("本伺服器最活躍的前 10 名成員：")
       .setTimestamp();
 
     const leaderboardText = await Promise.all(
@@ -57,15 +57,15 @@ export default {
           else if (index === 2) rankPrefix = '🥉';
           else rankPrefix = `**${index + 1}.**`;
 
-          return `${rankPrefix} ${userMention} - Level ${user.level} (${user.xp}/${xpForNextLevel} XP)`;
+          return `${rankPrefix} ${userMention} - 等級 ${user.level} (${user.xp}/${xpForNextLevel} XP)`;
         } catch {
-          return `**${index + 1}.** Error loading user ${user.userId}`;
+          return `**${index + 1}.** 載入使用者 ${user.userId} 失敗`;
         }
       })
     );
 
     embed.addFields({
-      name: 'Rankings',
+      name: '排名',
       value: leaderboardText.join('\n')
     });
 
