@@ -9,12 +9,12 @@ import { closeTicket } from '../../services/ticket.js';
 export default {
     data: new SlashCommandBuilder()
         .setName("close")
-        .setDescription("Closes the current ticket.")
+        .setDescription("關閉目前的客服單。")
         .setDMPermission(false)
         .addStringOption((option) =>
             option
                 .setName("reason")
-                .setDescription("The reason for closing the ticket.")
+                .setDescription("關閉客服單的原因。")
                 .setRequired(false),
         ),
 
@@ -26,29 +26,29 @@ export default {
 
         const permissionContext = await getTicketPermissionContext({ client, interaction });
         if (!permissionContext.ticketData) {
-            return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'This command can only be used in a valid ticket channel.' });
+            return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: '此指令只能在有效的客服單頻道中使用。' });
         }
 
         if (!permissionContext.canCloseTicket) {
-            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the `Manage Channels` permission, the configured `Ticket Staff Role`, or be the ticket creator to close this ticket.' });
+            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: '您需要「管理頻道」權限、已設定的「客服人員身分組」，或是身為客服單建立者才能關閉此客服單。' });
         }
 
         const reason =
             interaction.options?.getString("reason") ||
-            "Closed via command without a specific reason.";
+            "透過指令關閉，未提供特定原因。";
 
         await closeTicket(interaction.channel, interaction.user, reason);
 
         await InteractionHelper.safeEditReply(interaction, {
             embeds: [
                 successEmbed(
-                    "Ticket Closed!",
-                    "This ticket has been closed successfully.",
+                    "已關閉客服單！",
+                    "此客服單已成功關閉。",
                 ),
             ],
         });
 
-        logger.info('Ticket closed successfully', {
+        logger.info('客服單關閉成功', {
             userId: interaction.user.id,
             userTag: interaction.user.tag,
             channelId: interaction.channel.id,
