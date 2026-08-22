@@ -25,62 +25,62 @@ function truncateText(value, maxLength) {
 export default {
     data: new SlashCommandBuilder()
         .setName('reactroles')
-        .setDescription('Manage reaction role assignments')
+        .setDescription('管理反應身分組指派')
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addSubcommand(subcommand =>
             subcommand
                 .setName('setup')
-                .setDescription('Set up a new reaction role panel')
+                .setDescription('設定新的反應身分組面板')
                 .addChannelOption(option => 
                     option.setName('channel')
-                        .setDescription('The channel to send the reaction role message to')
+                        .setDescription('要發送反應身分組訊息的頻道')
                         .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
                         .setRequired(true)
                 )
                 .addStringOption(option =>
                     option.setName('title')
-                        .setDescription('Title for the reaction role panel')
+                        .setDescription('反應身分組面板的標題')
                         .setRequired(true)
                 )
                 .addStringOption(option =>
                     option.setName('description')
-                        .setDescription('Description for the reaction role panel')
+                        .setDescription('反應身分組面板的描述')
                         .setRequired(true)
                 )
                 .addRoleOption(option =>
                     option.setName('role1')
-                        .setDescription('First role to add')
+                        .setDescription('要新增的第一個身分組')
                         .setRequired(true)
                 )
                 .addRoleOption(option =>
                     option.setName('role2')
-                        .setDescription('Second role to add')
+                        .setDescription('要新增的第二個身分組')
                         .setRequired(false)
                 )
                 .addRoleOption(option =>
                     option.setName('role3')
-                        .setDescription('Third role to add')
+                        .setDescription('要新增的第三個身分組')
                         .setRequired(false)
                 )
                 .addRoleOption(option =>
                     option.setName('role4')
-                        .setDescription('Fourth role to add')
+                        .setDescription('要新增的第四個身分組')
                         .setRequired(false)
                 )
                 .addRoleOption(option =>
                     option.setName('role5')
-                        .setDescription('Fifth role to add')
+                        .setDescription('要新增的第五個身分組')
                         .setRequired(false)
                 )
         )
         .addSubcommand(subcommand =>
             subcommand
                 .setName('dashboard')
-                .setDescription('Manage and configure your reaction role panels')
+                .setDescription('管理與設定你的反應身分組面板')
                 .addStringOption(option =>
                     option
                         .setName('panel')
-                        .setDescription('Select a reaction role panel to manage')
+                        .setDescription('選擇要管理的反應身分組面板')
                         .setRequired(false)
                         .setAutocomplete(true)
                 )
@@ -132,7 +132,7 @@ export default {
                 const roleCount = Array.isArray(panel.roles) ? panel.roles.length : 0;
                 const label = cachedTitle
                     ? `${cachedTitle} (#${channel.name})`
-                    : `#${channel.name} · ${roleCount} role${roleCount === 1 ? '' : 's'}`;
+                    : `#${channel.name} · ${roleCount} 個身分組`;
 
                 choices.push({ name: label.substring(0, 100), value: panel.messageId });
                 if (choices.length >= 25) break;
@@ -159,7 +159,7 @@ async function handleSetup(interaction) {
         throw createError(
             `Invalid channel type: ${channel.type}`,
             ErrorTypes.VALIDATION,
-            'Please select a text or announcement channel.',
+            '請選擇文字頻道或公告頻道。',
             { channelType: channel.type }
         );
     }
@@ -168,7 +168,7 @@ async function handleSetup(interaction) {
         throw createError(
             'Bot missing ManageRoles permission',
             ErrorTypes.PERMISSION,
-            'I need the "Manage Roles" permission to set up reaction roles.',
+            '我需要「管理身分組」權限才能設定反應身分組。',
             { permission: 'ManageRoles' }
         );
     }
@@ -177,7 +177,7 @@ async function handleSetup(interaction) {
         throw createError(
             `Bot cannot send messages in ${channel.name}`,
             ErrorTypes.PERMISSION,
-            `I don't have permission to send messages in ${channel}.`,
+            `我沒有權限在 ${channel} 中發送訊息。`,
             { channelId: channel.id }
         );
     }
@@ -187,7 +187,7 @@ async function handleSetup(interaction) {
         throw createError(
             'Panel limit reached',
             ErrorTypes.VALIDATION,
-            'Your guild has reached the maximum of 5 reaction role panels. Delete an existing panel to create a new one.',
+            '你的伺服器已達到最多 5 個反應身分組面板的上限。請刪除現有的面板以建立新面板。',
             { maxPanels: 5, currentPanels: existingPanels.length }
         );
     }
@@ -200,27 +200,27 @@ async function handleSetup(interaction) {
         const role = interaction.options.getRole(`role${i}`);
         if (role) {
             if (seenRoleIds.has(role.id)) {
-                roleValidationErrors.push(`**${role.name}** - This role was selected more than once`);
+                roleValidationErrors.push(`**${role.name}** - 此身分組被重複選取了`);
                 continue;
             }
 
             if (role.position >= interaction.guild.members.me.roles.highest.position) {
-                roleValidationErrors.push(`**${role.name}** - My bot's role is positioned lower than this role in your server's role hierarchy and cannot assign it`);
+                roleValidationErrors.push(`**${role.name}** - 我（機器人）的身分組層級低於此身分組，因此無法指派它`);
                 continue;
             }
             
             if (hasDangerousPermissions(role)) {
-                roleValidationErrors.push(`**${role.name}** - This role has dangerous permissions (Administrator, Manage Server, etc.)`);
+                roleValidationErrors.push(`**${role.name}** - 此身分組擁有危險權限（管理員、管理伺服器等）`);
                 continue;
             }
             
             if (role.managed) {
-                roleValidationErrors.push(`**${role.name}** - This is a managed role (integration/bot role)`);
+                roleValidationErrors.push(`**${role.name}** - 這是一個受管理的身份組（整合/機器人身分組）`);
                 continue;
             }
             
             if (role.id === interaction.guild.id) {
-                roleValidationErrors.push(`**${role.name}** - Cannot use the @everyone role`);
+                roleValidationErrors.push(`**${role.name}** - 無法使用 @everyone 身分組`);
                 continue;
             }
             
@@ -230,7 +230,7 @@ async function handleSetup(interaction) {
     }
     
     if (roleValidationErrors.length > 0) {
-        const errorMsg = `The following roles cannot be added:\n${roleValidationErrors.join('\n')}`;
+        const errorMsg = `無法新增以下身分組：\n${roleValidationErrors.join('\n')}`;
         
         if (roles.length === 0) {
             throw createError(
@@ -242,7 +242,7 @@ async function handleSetup(interaction) {
         }
         
         await interaction.followUp({
-            embeds: [warningEmbed('Role Validation Warning', errorMsg)],
+            embeds: [warningEmbed('身分組驗證警告', errorMsg)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -251,7 +251,7 @@ async function handleSetup(interaction) {
         throw createError(
             'No roles provided',
             ErrorTypes.VALIDATION,
-            'You must provide at least one valid role.',
+            '你必須提供至少一個有效的身分組。',
             {}
         );
     }
@@ -259,13 +259,13 @@ async function handleSetup(interaction) {
     const row = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
             .setCustomId('reaction_roles')
-            .setPlaceholder('Select your roles')
+            .setPlaceholder('請選擇你的身分組')
             .setMinValues(0)
             .setMaxValues(roles.length)
             .addOptions(
                 roles.map(role => ({
                     label: truncateText(role.name, SELECT_OPTION_LABEL_LIMIT),
-                    description: truncateText(`Add/remove the ${role.name} role`, SELECT_OPTION_DESCRIPTION_LIMIT),
+                    description: truncateText(`新增/移除 ${role.name} 身分組`, SELECT_OPTION_DESCRIPTION_LIMIT),
                     value: role.id,
                     emoji: '🎭'
                 }))
@@ -277,10 +277,10 @@ async function handleSetup(interaction) {
         .setDescription(description)
         .setColor(getColor('info'))
         .addFields({
-            name: 'Available Roles',
+            name: '可用身分組',
             value: roles.map(role => `• ${role}`).join('\n')
         })
-        .setFooter({ text: 'Select roles from the dropdown menu below' });
+        .setFooter({ text: '請從下方的下拉選單中選擇身分組' });
 
     const message = await channel.send({
         embeds: [panelEmbed],
@@ -311,32 +311,32 @@ async function handleSetup(interaction) {
             guildId: interaction.guildId,
             eventType: EVENT_TYPES.REACTION_ROLE_CREATE,
             data: {
-                description: `Reaction role panel created by ${interaction.user.tag}`,
+                description: `反應身分組面板已由 ${interaction.user.tag} 建立`,
                 userId: interaction.user.id,
                 channelId: channel.id,
                 fields: [
                     {
-                        name: 'Title',
+                        name: '標題',
                         value: title,
                         inline: false
                     },
                     {
-                        name: 'Channel',
+                        name: '頻道',
                         value: channel.toString(),
                         inline: true
                     },
                     {
-                        name: 'Roles',
-                        value: `${roles.length} roles`,
+                        name: '身分組數量',
+                        value: `${roles.length} 個身分組`,
                         inline: true
                     },
                     {
-                        name: 'Role List',
+                        name: '身分組清單',
                         value: roles.map(r => r.toString()).join(','),
                         inline: false
                     },
                     {
-                        name: 'Message Link',
+                        name: '訊息連結',
                         value: message.url,
                         inline: false
                     }
@@ -348,7 +348,7 @@ async function handleSetup(interaction) {
     }
 
     await InteractionHelper.safeEditReply(interaction, {
-        embeds: [successEmbed('Success', `✅ Reaction role panel created in ${channel}!\n\n${message.url}`)]
+        embeds: [successEmbed('成功', `✅ 反應身分組面板已在 ${channel} 建立！\n\n${message.url}`)]
     });
 }
 
@@ -378,25 +378,25 @@ async function rebuildLivePanelMessage(guild, panelData) {
         const currentEmbed = msg.embeds[0];
         const updatedEmbed = EmbedBuilder.from(currentEmbed);
         const fields = currentEmbed.fields.map(f => ({ name: f.name, value: f.value, inline: f.inline }));
-        const roleFieldIdx = fields.findIndex(f => f.name === 'Available Roles');
+        const roleFieldIdx = fields.findIndex(f => f.name === '可用身分組');
         const newRoleValue = roleObjects.map(r => `• ${r}`).join('\n');
         if (roleFieldIdx !== -1) {
-            fields[roleFieldIdx] = { name: 'Available Roles', value: newRoleValue, inline: false };
+            fields[roleFieldIdx] = { name: '可用身分組', value: newRoleValue, inline: false };
         } else {
-            fields.push({ name: 'Available Roles', value: newRoleValue, inline: false });
+            fields.push({ name: '可用身分組', value: newRoleValue, inline: false });
         }
         updatedEmbed.setFields(fields);
 
         const selectRow = new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
                 .setCustomId('reaction_roles')
-                .setPlaceholder('Select your roles')
+                .setPlaceholder('請選擇你的身分組')
                 .setMinValues(0)
                 .setMaxValues(roleObjects.length)
                 .addOptions(
                     roleObjects.map(r => ({
                         label: r.name.substring(0, 100),
-                        description: `Add/remove the ${r.name} role`.substring(0, 100),
+                        description: `新增/移除 ${r.name} 身分組`.substring(0, 100),
                         value: r.id,
                         emoji: '🎭',
                     })),
@@ -424,28 +424,28 @@ async function showPanelDashboard(interaction, panelData, discordMsg, guildId, g
 
 function buildReactionRoleDashboardPayload(panelData, discordMsg, guildId, guild, panelStatus = null) {
     const channel = guild.channels.cache.get(panelData.channelId);
-    const title = discordMsg?.embeds?.[0]?.title ?? 'Untitled Panel';
+    const title = discordMsg?.embeds?.[0]?.title ?? '未命名面板';
     const roleList =
         panelData.roles.length > 0
             ? panelData.roles.map(id => `<@&${id}>`).join(',')
-            : '`None`';
+            : '`無`';
 
     const showRepost = panelStatus?.exists === false && panelStatus?.reason === 'panel_deleted';
 
     const embed = new EmbedBuilder()
-        .setTitle('Reaction Roles Dashboard')
+        .setTitle('反應身分組控制台')
         .setDescription(
-            `**Title:** ${title}\n\nSelect an option below to modify a setting.${discordMsg ? `\n[Click Here to View Panel](${discordMsg.url})` : ''}`,
+            `**標題：** ${title}\n\n請在下方選擇一個選項來修改設定。${discordMsg ? `\n[點擊此處檢視面板](${discordMsg.url})` : ''}`,
         )
         .setColor(getColor('info'))
         .addFields(
-            { name: 'Panel Status', value: formatPanelStatusField(panelStatus), inline: false },
-            { name: 'Channel', value: channel ? `<#${channel.id}>` : '`Not found`', inline: true },
-            { name: 'Roles', value: `\`${panelData.roles.length} / 25\``, inline: true },
+            { name: '面板狀態', value: formatPanelStatusField(panelStatus), inline: false },
+            { name: '頻道', value: channel ? `<#${channel.id}>` : '`找不到`', inline: true },
+            { name: '身分組數', value: `\`${panelData.roles.length} / 25\``, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
-            { name: 'Role List', value: roleList, inline: false },
+            { name: '身分組清單', value: roleList, inline: false },
         )
-        .setFooter({ text: 'Dashboard closes after 10 minutes of inactivity' })
+        .setFooter({ text: '控制台會在閒置 10 分鐘後關閉' })
         .setTimestamp();
 
     const buttons = [];
@@ -454,7 +454,7 @@ function buildReactionRoleDashboardPayload(panelData, discordMsg, guildId, guild
         buttons.push(
             new ButtonBuilder()
                 .setCustomId(`rr_repost_${guildId}`)
-                .setLabel('Repost Panel')
+                .setLabel('重新發布面板')
                 .setStyle(ButtonStyle.Primary)
                 .setEmoji('📌'),
         );
@@ -463,30 +463,30 @@ function buildReactionRoleDashboardPayload(panelData, discordMsg, guildId, guild
     buttons.push(
         new ButtonBuilder()
             .setCustomId(`rr_edit_text_${guildId}`)
-            .setLabel('Edit Panel Text')
+            .setLabel('編輯面板文字')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('✏️'),
         new ButtonBuilder()
             .setCustomId(`rr_delete_${guildId}`)
-            .setLabel('Delete Panel')
+            .setLabel('刪除面板')
             .setStyle(ButtonStyle.Danger)
             .setEmoji('🗑️'),
     );
 
     const optionsSelect = new StringSelectMenuBuilder()
         .setCustomId(`rr_opts_${guildId}`)
-        .setPlaceholder('Select an action...')
+        .setPlaceholder('選擇一個操作...')
         .addOptions(
             new StringSelectMenuOptionBuilder()
-                .setLabel('Add Role')
-                .setDescription('Add a role to this panel (up to 25 total)')
+                .setLabel('新增身分組')
+                .setDescription('在此面板新增身分組（最多 25 個）')
                 .setValue('add_role')
                 .setEmoji('➕'),
             ...(panelData.roles.length > 0
                 ? [
                       new StringSelectMenuOptionBuilder()
-                          .setLabel('Remove Role')
-                          .setDescription('Remove a role from this panel')
+                          .setLabel('移除身分組')
+                          .setDescription('從此面板移除身分組')
                           .setValue('remove_role')
                           .setEmoji('➖'),
                   ]
@@ -516,7 +516,7 @@ async function repostReactionRolePanel(guild, panelData, client, guildId, fallba
         throw createError(
             'Panel channel missing',
             ErrorTypes.CONFIGURATION,
-            'The configured panel channel no longer exists.',
+            '設定的面板頻道已不存在。',
         );
     }
 
@@ -525,32 +525,32 @@ async function repostReactionRolePanel(guild, panelData, client, guildId, fallba
         throw createError(
             'No valid roles',
             ErrorTypes.VALIDATION,
-            'This panel has no valid roles left to repost.',
+            '此面板沒有剩餘有效的身分組可以重新發布。',
         );
     }
 
-    const title = fallbackEmbed?.title || 'Reaction Roles';
-    const description = fallbackEmbed?.description || 'Select your roles using the menu below.';
+    const title = fallbackEmbed?.title || '反應身分組';
+    const description = fallbackEmbed?.description || '使用下方選單來選擇你的身分組。';
 
     const panelEmbed = new EmbedBuilder()
         .setTitle(title)
         .setDescription(description)
         .setColor(getColor('info'))
         .addFields({
-            name: 'Available Roles',
+            name: '可用身分組',
             value: roleObjects.map(role => `• ${role}`).join('\n'),
         });
 
     const row = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
             .setCustomId('reaction_roles')
-            .setPlaceholder('Select your roles')
+            .setPlaceholder('請選擇你的身分組')
             .setMinValues(0)
             .setMaxValues(roleObjects.length)
             .addOptions(
                 roleObjects.map(role => ({
                     label: role.name.substring(0, 100),
-                    description: `Add/remove the ${role.name} role`.substring(0, 100),
+                    description: `新增/移除 ${role.name} 身分組`.substring(0, 100),
                     value: role.id,
                     emoji: '🎭',
                 })),
@@ -575,7 +575,7 @@ async function handleDashboard(interaction, selectedPanelId) {
         throw createError(
             'No panels',
             ErrorTypes.CONFIGURATION,
-            'No reaction role panels found. Use `/reactroles setup` first.',
+            '找不到任何反應身分組面板。請先使用 `/reactroles setup`。',
         );
     }
 
@@ -587,7 +587,7 @@ async function handleDashboard(interaction, selectedPanelId) {
             throw createError(
                 'Panel required',
                 ErrorTypes.VALIDATION,
-                'Multiple panels exist. Choose one using the **panel** option.',
+                '存在多個面板。請使用 **panel** 選項來選擇一個。',
             );
         }
     }
@@ -630,7 +630,7 @@ async function handleDashboard(interaction, selectedPanelId) {
                     fallbackEmbed,
                 );
                 await btnInteraction.followUp({
-                    embeds: [successEmbed('Panel Reposted', `Reaction role panel restored in ${newMsg.channel}.`)],
+                    embeds: [successEmbed('面板已重新發布', `反應身分組面板已在 ${newMsg.channel} 恢復。`)],
                     flags: MessageFlags.Ephemeral,
                 });
                 await showPanelDashboard(
@@ -668,12 +668,12 @@ async function handleEditText(buttonInteraction, rootInteraction, panelData, gui
 
     const modal = new ModalBuilder()
         .setCustomId('rr_edit_text')
-        .setTitle('Edit Panel Text')
+        .setTitle('編輯面板文字')
         .addComponents(
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('panel_title')
-                    .setLabel('Title')
+                    .setLabel('標題')
                     .setStyle(TextInputStyle.Short)
                     .setValue(currentTitle)
                     .setMaxLength(256)
@@ -683,7 +683,7 @@ async function handleEditText(buttonInteraction, rootInteraction, panelData, gui
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('panel_description')
-                    .setLabel('Description')
+                    .setLabel('描述')
                     .setStyle(TextInputStyle.Paragraph)
                     .setValue(currentDesc)
                     .setMaxLength(2048)
@@ -698,7 +698,7 @@ async function handleEditText(buttonInteraction, rootInteraction, panelData, gui
         logger.error('Error showing edit text modal:', error);
         await replyUserError(buttonInteraction, {
             type: ErrorTypes.UNKNOWN,
-            message: 'Failed to show the edit panel text modal. Please try again.',
+            message: '無法顯示編輯面板文字視窗。請再試一次。',
         }).catch(() => {});
         return;
     }
@@ -724,12 +724,12 @@ async function handleEditText(buttonInteraction, rootInteraction, panelData, gui
             .setDescription(newDescription);
         if (roleObjects.length > 0) {
             const fields = discordMsg.embeds[0].fields?.map(f => ({ name: f.name, value: f.value, inline: f.inline })) || [];
-            const roleFieldIdx = fields.findIndex(f => f.name === 'Available Roles');
+            const roleFieldIdx = fields.findIndex(f => f.name === '可用身分組');
             const newRoleValue = roleObjects.map(r => `• ${r}`).join('\n');
             if (roleFieldIdx !== -1) {
-                fields[roleFieldIdx] = { name: 'Available Roles', value: newRoleValue, inline: false };
+                fields[roleFieldIdx] = { name: '可用身分組', value: newRoleValue, inline: false };
             } else {
-                fields.push({ name: 'Available Roles', value: newRoleValue, inline: false });
+                fields.push({ name: '可用身分組', value: newRoleValue, inline: false });
             }
             updatedEmbed.setFields(fields);
         }
@@ -737,7 +737,7 @@ async function handleEditText(buttonInteraction, rootInteraction, panelData, gui
     }
 
     await submitted.reply({
-        embeds: [successEmbed('Panel Updated', 'The title and description have been updated.')],
+        embeds: [successEmbed('面板已更新', '標題與描述已更新。')],
         flags: MessageFlags.Ephemeral,
     });
 
@@ -753,22 +753,22 @@ async function handleAddRole(selectInteraction, rootInteraction, panelData, guil
     if (panelData.roles.length >= 25) {
         await replyUserError(selectInteraction, {
             type: ErrorTypes.VALIDATION,
-            message: 'This panel already has the maximum of 25 roles.',
+            message: '此面板已達最多 25 個身分組的上限。',
         });
         return;
     }
 
     const roleSelect = new RoleSelectMenuBuilder()
         .setCustomId('rr_add_role_pick')
-        .setPlaceholder('Select a role to add...')
+        .setPlaceholder('選擇要新增的身分組...')
         .setMaxValues(1);
 
     await selectInteraction.followUp({
         embeds: [
             new EmbedBuilder()
-                .setTitle('Add Role')
+                .setTitle('新增身分組')
                 .setDescription(
-                    `**Current roles:** ${panelData.roles.length}/25\n\nSelect a role to add to this panel.`,
+                    `**目前身分組：** ${panelData.roles.length}/25\n\n請選擇要新增到此面板的身分組。`,
                 )
                 .setColor(getColor('info')),
         ],
@@ -791,35 +791,35 @@ async function handleAddRole(selectInteraction, rootInteraction, panelData, guil
         if (panelData.roles.includes(role.id)) {
             await replyUserError(roleInteraction, {
                 type: ErrorTypes.VALIDATION,
-                message: `${role} is already in this panel.`,
+                message: `${role} 已經在此面板中了。`,
             });
             return;
         }
         if (role.id === guild.id) {
             await replyUserError(roleInteraction, {
                 type: ErrorTypes.VALIDATION,
-                message: 'You cannot use @everyone.',
+                message: '你不能使用 @everyone。',
             });
             return;
         }
         if (role.managed) {
             await replyUserError(roleInteraction, {
                 type: ErrorTypes.VALIDATION,
-                message: 'Managed/bot roles cannot be used.',
+                message: '無法使用受管理的/機器人身分組。',
             });
             return;
         }
         if (hasDangerousPermissions(role)) {
             await replyUserError(roleInteraction, {
                 type: ErrorTypes.PERMISSION,
-                message: 'That role has sensitive permissions (Administrator, Manage Server, etc.) and cannot be used.',
+                message: '該身分組具有敏感權限（管理員、管理伺服器等），無法使用。',
             });
             return;
         }
         if (role.position >= guild.members.me.roles.highest.position) {
             await replyUserError(roleInteraction, {
                 type: ErrorTypes.PERMISSION,
-                message: "That role is above my highest role in the hierarchy. Move my role above it first.",
+                message: '該身分組高於我在層級中的最高身分組。請先將我的身分組移到它上方。',
             });
             return;
         }
@@ -831,7 +831,7 @@ async function handleAddRole(selectInteraction, rootInteraction, panelData, guil
         await rebuildLivePanelMessage(guild, panelData);
 
         await roleInteraction.followUp({
-            embeds: [successEmbed('Role Added', `${role} has been added to the panel.`)],
+            embeds: [successEmbed('已新增身分組', `${role} 已新增至面板。`)],
             flags: MessageFlags.Ephemeral,
         });
 
@@ -846,7 +846,7 @@ async function handleAddRole(selectInteraction, rootInteraction, panelData, guil
         if (reason === 'time' && collected.size === 0) {
             replyUserError(selectInteraction, {
                 type: ErrorTypes.RATE_LIMIT,
-                message: 'No role selected. Nothing was changed.',
+                message: '未選擇任何身分組。沒有做任何變更。',
             }).catch(() => {});
         }
     });
@@ -865,14 +865,14 @@ async function handleRemoveRole(selectInteraction, rootInteraction, panelData, p
     if (roleOptions.length === 0) {
         await replyUserError(selectInteraction, {
             type: ErrorTypes.USER_INPUT,
-            message: 'The roles on this panel no longer exist in the server.',
+            message: '此面板上的身分組已不存在於伺服器中。',
         });
         return;
     }
 
     const removeSelect = new StringSelectMenuBuilder()
         .setCustomId('rr_remove_role_pick')
-        .setPlaceholder('Select a role to remove...')
+        .setPlaceholder('選擇要移除的身分組...')
         .setMaxValues(1)
         .addOptions(
             roleOptions.map(r =>
@@ -883,8 +883,8 @@ async function handleRemoveRole(selectInteraction, rootInteraction, panelData, p
     await selectInteraction.followUp({
         embeds: [
             new EmbedBuilder()
-                .setTitle('Remove Role')
-                .setDescription('Select the role you want to remove from this panel.')
+                .setTitle('移除身分組')
+                .setDescription('請選擇你想要從此面板移除的身分組。')
                 .setColor(getColor('info')),
         ],
         components: [new ActionRowBuilder().addComponents(removeSelect)],
@@ -917,8 +917,8 @@ async function handleRemoveRole(selectInteraction, rootInteraction, panelData, p
             await removeInteraction.followUp({
                 embeds: [
                     successEmbed(
-                        '✅ Role Removed',
-                        'That was the last role on the panel. The panel has been deleted.',
+                        '✅ 已移除身分組',
+                        '這是面板上的最後一個身分組。面板已被刪除。',
                     ),
                 ],
                 flags: MessageFlags.Ephemeral,
@@ -933,8 +933,8 @@ async function handleRemoveRole(selectInteraction, rootInteraction, panelData, p
                 await InteractionHelper.safeEditReply(rootInteraction, {
                     embeds: [
                         new EmbedBuilder()
-                            .setTitle('Reaction Roles Dashboard')
-                            .setDescription('No panels remain. Use `/reactroles setup` to create one.')
+                            .setTitle('反應身分組控制台')
+                            .setDescription('沒有剩餘的面板。請使用 `/reactroles setup` 建立一個。')
                             .setColor(getColor('info')),
                     ],
                     components: [],
@@ -945,8 +945,8 @@ async function handleRemoveRole(selectInteraction, rootInteraction, panelData, p
                 await InteractionHelper.safeEditReply(rootInteraction, {
                     embeds: [
                         new EmbedBuilder()
-                            .setTitle('Reaction Roles Dashboard')
-                            .setDescription('Panel deleted. Run `/reactroles dashboard` to manage another panel.')
+                            .setTitle('反應身分組控制台')
+                            .setDescription('面板已刪除。執行 `/reactroles dashboard` 來管理其他面板。')
                             .setColor(getColor('success')),
                     ],
                     components: [],
@@ -961,8 +961,8 @@ async function handleRemoveRole(selectInteraction, rootInteraction, panelData, p
             await removeInteraction.followUp({
                 embeds: [
                     successEmbed(
-                        '✅ Role Removed',
-                        `${role ? role.toString() :`<@&${roleId}>`} has been removed from the panel.`,
+                        '✅ 已移除身分組',
+                        `${role ? role.toString() : `<@&${roleId}>`} 已從面板中移除。`,
                     ),
                 ],
                 flags: MessageFlags.Ephemeral,
@@ -980,7 +980,7 @@ async function handleRemoveRole(selectInteraction, rootInteraction, panelData, p
         if (reason === 'time' && collected.size === 0) {
             replyUserError(selectInteraction, {
                 type: ErrorTypes.RATE_LIMIT,
-                message: 'No role selected. Nothing was changed.',
+                message: '未選擇任何身分組。沒有做任何變更。',
             }).catch(() => {});
         }
     });
@@ -991,21 +991,21 @@ async function handleDeletePanel(btnInteraction, rootInteraction, panelData, pan
     const discordMsg = channel
         ? await channel.messages.fetch(panelData.messageId).catch(() => null)
         : null;
-    const title = discordMsg?.embeds?.[0]?.title ?? 'this panel';
+    const title = discordMsg?.embeds?.[0]?.title ?? '此面板';
 
     const deleteModal = new ModalBuilder()
         .setCustomId('rr_delete_confirm_modal')
-        .setTitle('Delete Reaction Role Panel');
+        .setTitle('刪除反應身分組面板');
 
     const deleteWarningText = new TextDisplayBuilder()
-        .setContent(`⚠️ You are about to permanently delete the panel **${title}**. This will remove the Discord message and all associated reaction role assignments.`);
+        .setContent(`⚠️ 你即將永久刪除面板 **${title}**。這將會移除 Discord 訊息以及所有相關的反應身分組指派。`);
 
     const deleteCheckbox = new CheckboxBuilder()
         .setCustomId('delete_confirmation')
         .setDefault(false);
 
     const deleteCheckboxLabel = new LabelBuilder()
-        .setLabel('I confirm — this cannot be undone')
+        .setLabel('我確認 — 此操作無法復原')
         .setCheckboxComponent(deleteCheckbox);
 
     deleteModal
@@ -1029,7 +1029,7 @@ async function handleDeletePanel(btnInteraction, rootInteraction, panelData, pan
     const confirmed = submitted.fields.getCheckbox('delete_confirmation');
 
     if (!confirmed) {
-        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'You must tick the confirmation checkbox to delete the panel.' });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: '你必須勾選確認方塊才能刪除面板。' });
         await showPanelDashboard(rootInteraction, panelData, discordMsg, guildId, guild, client);
         return;
     }
@@ -1047,12 +1047,12 @@ async function handleDeletePanel(btnInteraction, rootInteraction, panelData, pan
             guildId,
             eventType: EVENT_TYPES.REACTION_ROLE_DELETE,
             data: {
-                description: `Reaction role panel deleted by ${submitted.user.tag}`,
+                description: `反應身分組面板已由 ${submitted.user.tag} 刪除`,
                 userId: submitted.user.id,
                 channelId: panelData.channelId,
                 fields: [
-                    { name: 'Panel', value: title, inline: true },
-                    { name: 'Channel', value: channel ? channel.toString() : 'Unknown', inline: true },
+                    { name: '面板', value: title, inline: true },
+                    { name: '頻道', value: channel ? channel.toString() : '未知', inline: true },
                 ],
             },
         });
@@ -1061,7 +1061,7 @@ async function handleDeletePanel(btnInteraction, rootInteraction, panelData, pan
     }
 
     await submitted.followUp({
-        embeds: [successEmbed('Panel Deleted', `**${title}** has been deleted.`)],
+        embeds: [successEmbed('面板已刪除', `**${title}** 已被刪除。`)],
         flags: MessageFlags.Ephemeral,
     });
 
@@ -1074,8 +1074,8 @@ async function handleDeletePanel(btnInteraction, rootInteraction, panelData, pan
         await InteractionHelper.safeEditReply(rootInteraction, {
             embeds: [
                 new EmbedBuilder()
-                    .setTitle('Reaction Roles Dashboard')
-                    .setDescription('No panels remain. Use `/reactroles setup` to create one.')
+                    .setTitle('反應身分組控制台')
+                    .setDescription('沒有剩餘的面板。請使用 `/reactroles setup` 建立一個。')
                     .setColor(getColor('info')),
             ],
             components: [],
@@ -1085,8 +1085,8 @@ async function handleDeletePanel(btnInteraction, rootInteraction, panelData, pan
         await InteractionHelper.safeEditReply(rootInteraction, {
             embeds: [
                 new EmbedBuilder()
-                    .setTitle('Reaction Roles Dashboard')
-                    .setDescription('Panel deleted. Run `/reactroles dashboard` to manage another panel.')
+                    .setTitle('反應身分組控制台')
+                    .setDescription('面板已刪除。執行 `/reactroles dashboard` 來管理其他面板。')
                     .setColor(getColor('success')),
             ],
             components: [],
