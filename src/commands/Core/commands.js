@@ -38,7 +38,7 @@ function buildCategoryChoices(client) {
 
 async function ensureManageGuild(interaction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-    await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the **Manage Server** permission to manage commands.' });
+    await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: '你需要 **管理伺服器** 權限才能管理指令。' });
     return false;
   }
 
@@ -48,32 +48,32 @@ async function ensureManageGuild(interaction) {
 export default {
   data: new SlashCommandBuilder()
     .setName('commands')
-    .setDescription('Enable or disable bot commands and categories for this server')
+    .setDescription('在此伺服器中啟用或停用機器人指令與類別')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false)
     .addSubcommand((subcommand) =>
       subcommand
         .setName('dashboard')
-        .setDescription('Open the interactive command access dashboard'),
+        .setDescription('開啟互動式指令存取權限儀表板'),
     )
     .addSubcommand((subcommand) =>
       subcommand
         .setName('disable')
-        .setDescription('Disable a command or entire category')
+        .setDescription('停用指令或整個類別')
         .addStringOption((option) =>
           option
             .setName('scope')
-            .setDescription('Disable a single command or a whole category')
+            .setDescription('要停用單一指令還是整個類別')
             .setRequired(true)
             .addChoices(
-              { name: 'Category', value: 'category' },
-              { name: 'Command', value: 'command' },
+              { name: '類別', value: 'category' },
+              { name: '指令', value: 'command' },
             ),
         )
         .addStringOption((option) =>
           option
             .setName('target')
-            .setDescription('Category or command name')
+            .setDescription('類別或指令名稱')
             .setRequired(true)
             .setAutocomplete(true),
         ),
@@ -81,21 +81,21 @@ export default {
     .addSubcommand((subcommand) =>
       subcommand
         .setName('enable')
-        .setDescription('Enable a command or entire category')
+        .setDescription('啟用指令或整個類別')
         .addStringOption((option) =>
           option
             .setName('scope')
-            .setDescription('Enable a single command or a whole category')
+            .setDescription('要啟用單一指令還是整個類別')
             .setRequired(true)
             .addChoices(
-              { name: 'Category', value: 'category' },
-              { name: 'Command', value: 'command' },
+              { name: '類別', value: 'category' },
+              { name: '指令', value: 'command' },
             ),
         )
         .addStringOption((option) =>
           option
             .setName('target')
-            .setDescription('Category or command name')
+            .setDescription('類別或指令名稱')
             .setRequired(true)
             .setAutocomplete(true),
         ),
@@ -119,25 +119,24 @@ export default {
       return interaction.respond(choices);
     }
 
-    // For command scope, get all commands including subcommands
+    // 針對指令範圍，取得所有指令（包含子指令）
     const registry = buildCommandRegistry(interaction.client);
     const allCommands = [];
     
-    // Check if the query matches a category name - if so, show commands from that category
+    // 檢查查詢是否符合類別名稱 - 若是，則顯示該類別底下的指令
     const matchedCategory = resolveCategoryChoice(interaction.client, query);
     
     if (matchedCategory) {
-      // Show commands from the matched category
       for (const command of matchedCategory.commands) {
         if (!isProtectedCommand(command.name)) {
           allCommands.push(command.name);
         }
       }
     } else {
-      // Show all commands
+      // 顯示所有指令
       for (const category of registry.values()) {
         for (const command of category.commands) {
-          // Include both base commands and subcommands
+          // 包含基礎指令與子指令
           if (!isProtectedCommand(command.name)) {
             allCommands.push(command.name);
           }
@@ -196,7 +195,7 @@ export default {
           });
           await replyUserError(componentInteraction, {
             type: ErrorTypes.UNKNOWN,
-            message: error.message || 'Failed to update command access.',
+            message: error.message || '更新指令存取權限失敗。',
           }).catch(() => {});
         }
       });
@@ -227,7 +226,7 @@ export default {
     if (scope === 'category') {
       const category = resolveCategoryChoice(client, target);
       if (!category) {
-        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `No category matched \`${target}\`. Use \`/commands dashboard\` to browse categories.` });
+        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `找不到符合 \`${target}\` 的類別。請使用 \`/commands dashboard\` 來瀏覽類別。` });
       }
 
       if (isDisable) {
@@ -235,8 +234,8 @@ export default {
         return InteractionHelper.safeEditReply(interaction, {
           embeds: [
             successEmbed(
-              'Category Disabled',
-              `All **${category.displayName}** commands are now disabled.\nProtected commands remain available.`,
+              '已停用類別',
+              `**${category.displayName}** 的所有指令現已停用。\n受保護的指令將繼續保持可用。`,
             ),
           ],
         });
@@ -244,7 +243,7 @@ export default {
 
       await enableCategory(client, interaction.guildId, category.key);
       return InteractionHelper.safeEditReply(interaction, {
-        embeds: [successEmbed('Category Enabled', `**${category.displayName}** commands are now enabled (except individually disabled commands).`)],
+        embeds: [successEmbed('已啟用類別', `**${category.displayName}** 的指令現已啟用（個別停用的指令除外）。`)],
       });
     }
 
@@ -252,13 +251,13 @@ export default {
     if (isDisable) {
       await disableCommand(client, interaction.guildId, commandName);
       return InteractionHelper.safeEditReply(interaction, {
-        embeds: [successEmbed('Command Disabled', `\`/${commandName}\` is now disabled in this server.`)],
+        embeds: [successEmbed('已停用指令', `\`/${commandName}\` 現已在此伺服器中停用。`)],
       });
     }
 
     await enableCommand(client, interaction.guildId, commandName);
     return InteractionHelper.safeEditReply(interaction, {
-      embeds: [successEmbed('Command Enabled', `\`/${commandName}\` is now enabled in this server.`)],
+      embeds: [successEmbed('已啟用指令', `\`/${commandName}\` 現已在此伺服器中啟用。`)],
     });
   },
 };
