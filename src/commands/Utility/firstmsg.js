@@ -5,10 +5,10 @@ import { logger } from '../../utils/logger.js';
 export default {
     data: new SlashCommandBuilder()
         .setName("firstmsg")
-        .setDescription("Get a link to the first message in this channel")
+        .setDescription("取得此頻道中的第一則訊息連結")
         .setDMPermission(false)
         .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
-    category: "Utility",
+    category: "工具",
 
     async execute(interaction, config, client) {
         const deferSuccess = await InteractionHelper.safeDefer(interaction);
@@ -36,7 +36,7 @@ export default {
                 guildId: interaction.guildId
             });
             return await InteractionHelper.safeEditReply(interaction, {
-                embeds: [successEmbed('First Message', "No messages found in this channel!")],
+                embeds: [successEmbed('第一則訊息', "在此頻道中找不到任何訊息！")],
             });
         }
 
@@ -45,8 +45,8 @@ export default {
         await InteractionHelper.safeEditReply(interaction, {
             embeds: [
                 successEmbed(
-                    "First Message in #" + interaction.channel.name,
-                    `Message Link: ${messageLink}`
+                    "#" + interaction.channel.name + " 中的第一則訊息",
+                    `訊息連結：${messageLink}`
                 ),
             ],
         });
