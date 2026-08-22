@@ -22,10 +22,10 @@ import appDashboard from './modules/app_dashboard.js';
 function getApplicationStatusPresentation(statusValue) {
     const normalized = typeof statusValue === 'string' ? statusValue.trim().toLowerCase() : 'unknown';
     const statusLabel =
-        normalized === 'pending' ? 'In Progress' :
-        normalized === 'approved' ? 'Accepted' :
-        normalized === 'denied' ? 'Denied' :
-        'Unknown';
+        normalized === 'pending' ? '審核中' :
+        normalized === 'approved' ? '已接受' :
+        normalized === 'denied' ? '已拒絕' :
+        '未知';
     const statusEmoji =
         normalized === 'pending' ? '🟡' :
         normalized === 'approved' ? '🟢' :
@@ -38,49 +38,49 @@ function getApplicationStatusPresentation(statusValue) {
 export default {
     data: new SlashCommandBuilder()
     .setName("app-admin")
-    .setDescription("Manage staff applications")
+    .setDescription("管理管理員與工作人員申請")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .addSubcommand((subcommand) =>
         subcommand
             .setName("setup")
-            .setDescription("Set up a new application")
+            .setDescription("設定新的申請")
     )
     .addSubcommand((subcommand) =>
         subcommand
             .setName("review")
-            .setDescription("Approve or deny an application")
+            .setDescription("批准或拒絕一項申請")
             .addStringOption((option) =>
                 option
                     .setName("id")
-                    .setDescription("The application ID")
+                    .setDescription("申請 ID")
                     .setRequired(true),
             ),
     )
     .addSubcommand((subcommand) =>
         subcommand
             .setName("list")
-            .setDescription("List all applications")
+            .setDescription("列出所有申請")
             .addStringOption((option) =>
                 option
                     .setName("status")
-                    .setDescription("Filter by status")
+                    .setDescription("依狀態篩選")
                     .addChoices(
-                        { name: "Pending", value: "pending" },
-                        { name: "Approved", value: "approved" },
-                        { name: "Denied", value: "denied" },
+                        { name: "審核中", value: "pending" },
+                        { name: "已批准", value: "approved" },
+                        { name: "已拒絕", value: "denied" },
                     ),
             )
             .addStringOption((option) =>
-                option.setName("role").setDescription("Filter by role ID"),
+                option.setName("role").setDescription("依角色 ID 篩選"),
             )
             .addUserOption((option) =>
-                option.setName("user").setDescription("Filter by user"),
+                option.setName("user").setDescription("依使用者篩選"),
             )
             .addNumberOption((option) =>
                 option
                     .setName("limit")
                     .setDescription(
-                        "Maximum number of applications to show (default: 10)",
+                        "顯示的最大申請數量（預設：10）",
                     )
                     .setMinValue(1)
                     .setMaxValue(25),
@@ -89,11 +89,11 @@ export default {
     .addSubcommand((subcommand) =>
         subcommand
             .setName("dashboard")
-            .setDescription("Open the applications configuration dashboard")
+            .setDescription("開啟申請設定儀表板")
             .addStringOption((option) =>
                 option
                     .setName("application")
-                    .setDescription("Select an application to configure")
+                    .setDescription("選擇要設定的申請")
                     .setRequired(false)
                     .setAutocomplete(true),
             ),
@@ -103,7 +103,7 @@ export default {
 
     execute: withErrorHandling(async (interaction) => {
         if (!interaction.inGuild()) {
-            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'This command can only be used in a server.' });
+            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '此指令只能在伺服器中使用。' });
         }
 
         const { options, guild, member } = interaction;
@@ -135,58 +135,57 @@ export default {
 };
 
 async function handleSetup(interaction) {
-    
     if (interaction.deferred || interaction.replied) {
-        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'This interaction has already been processed. Please try the command again.' });
+        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '此互動已經過處理，請重新執行指令。' });
     }
 
     const modal = new ModalBuilder()
         .setCustomId('app_setup_modal')
-        .setTitle('Set Up New Application');
+        .setTitle('設定新申請');
 
     const roleSelect = new RoleSelectMenuBuilder()
         .setCustomId('role_id')
-        .setPlaceholder('Select the role users will apply for')
+        .setPlaceholder('選擇使用者將要申請的角色')
         .setRequired(true);
 
     const roleLabel = new LabelBuilder()
-        .setLabel('Application Role')
-        .setDescription('The role that users will be applying for')
+        .setLabel('申請角色')
+        .setDescription('使用者將要申請取得的角色')
         .setRoleSelectMenuComponent(roleSelect);
 
     const appNameInput = new TextInputBuilder()
         .setCustomId('app_name')
         .setStyle(TextInputStyle.Short)
-        .setPlaceholder('e.g., Moderator, Helper, Developer')
+        .setPlaceholder('例如：版主、小幫手、開發者')
         .setMaxLength(50)
         .setMinLength(1)
         .setRequired(true);
 
     const appNameLabel = new LabelBuilder()
-        .setLabel('Application Name')
+        .setLabel('申請名稱')
         .setTextInputComponent(appNameInput);
 
     const q1Input = new TextInputBuilder()
         .setCustomId('app_question_1')
         .setStyle(TextInputStyle.Short)
-        .setPlaceholder('Why do you want this role?')
+        .setPlaceholder('為什麼你想擔任這個職位？')
         .setMaxLength(100)
         .setMinLength(1)
         .setRequired(true);
 
     const q1Label = new LabelBuilder()
-        .setLabel('Question 1 (required)')
+        .setLabel('問題 1（必填）')
         .setTextInputComponent(q1Input);
 
     const q2Input = new TextInputBuilder()
         .setCustomId('app_question_2')
         .setStyle(TextInputStyle.Short)
-        .setPlaceholder('What experience do you have?')
+        .setPlaceholder('你有哪些相關經驗？')
         .setMaxLength(100)
         .setRequired(false);
 
     const q2Label = new LabelBuilder()
-        .setLabel('Question 2 (optional)')
+        .setLabel('問題 2（選填）')
         .setTextInputComponent(q2Input);
 
     const q3Input = new TextInputBuilder()
@@ -196,7 +195,7 @@ async function handleSetup(interaction) {
         .setRequired(false);
 
     const q3Label = new LabelBuilder()
-        .setLabel('Question 3 (optional)')
+        .setLabel('問題 3（選填）')
         .setTextInputComponent(q3Input);
 
     modal.addLabelComponents(roleLabel, appNameLabel, q1Label, q2Label, q3Label);
@@ -220,7 +219,7 @@ async function handleSetup(interaction) {
     const roleId = selectedRoles.first()?.id;
 
     if (!roleId) {
-        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: 'You must select a role for the application.' });
+        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: '你必須為此申請選擇一個角色。' });
         return;
     }
 
@@ -232,13 +231,13 @@ async function handleSetup(interaction) {
 
     const role = await interaction.guild.roles.fetch(roleId).catch(() => null);
     if (!role) {
-        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'The selected role could not be found.' });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: '找不到所選的角色。' });
         return;
     }
 
     const existingRoles = await getApplicationRoles(interaction.client, interaction.guild.id);
     if (existingRoles.some(r => r.roleId === roleId)) {
-        await replyUserError(submitted, { type: ErrorTypes.CONFIGURATION, message: `The role ${role} is already configured as an application.` });
+        await replyUserError(submitted, { type: ErrorTypes.CONFIGURATION, message: `角色 ${role} 已經被設定為申請項目。` });
         return;
     }
 
@@ -259,8 +258,8 @@ async function handleSetup(interaction) {
 
     await submitted.reply({
         embeds: [successEmbed(
-            '✅ Application Created',
-            `**${appName}** application has been created for ${role}.\n\nYou can customize the log channel, manager roles, questions, and retention period in the dashboard.`,
+            '✅ 已建立申請',
+            `已為 ${role} 建立 **${appName}** 申請。\n\n你可以在儀表板中自訂記錄頻道、管理員角色、問題與保留期限。`,
         )],
         flags: ['Ephemeral'],
     });
@@ -279,16 +278,16 @@ async function handleReview(interaction) {
         appId,
     );
     if (!application) {
-        return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'Application not found.' });
+        return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: '找不到此申請。' });
     }
 
     if (application.status !== "pending") {
-        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'This application has already been processed.' });
+        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '此申請已經過處理。' });
     }
 
     const appEmbed = createEmbed({
-        title: `Review Application`,
-        description: `**User:** <@${application.userId}>\n**Application:** ${application.roleName}\n**Application ID:** \`${appId}\``,
+        title: `審核申請`,
+        description: `**使用者：** <@${application.userId}>\n**申請項目：** ${application.roleName}\n**申請 ID：** \`${appId}\``,
         color: 'info',
     });
 
@@ -296,7 +295,7 @@ async function handleReview(interaction) {
         application.answers.forEach((item, index) => {
             appEmbed.addFields({
                 name: `Q${index + 1}: ${item.question}`,
-                value: item.answer || '*No answer provided*',
+                value: item.answer || '*未提供答案*',
                 inline: false
             });
         });
@@ -305,11 +304,11 @@ async function handleReview(interaction) {
     const buttonRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`app_review_approve_${appId}`)
-            .setLabel('Approve')
+            .setLabel('批准')
             .setStyle(ButtonStyle.Success),
         new ButtonBuilder()
             .setCustomId(`app_review_deny_${appId}`)
-            .setLabel('Deny')
+            .setLabel('拒絕')
             .setStyle(ButtonStyle.Danger),
     );
 
@@ -334,15 +333,15 @@ async function handleReview(interaction) {
 
         const reasonModal = new ModalBuilder()
             .setCustomId(`app_review_reason_${appId}_${isApprove ? 'approve' : 'deny'}`)
-            .setTitle(`${isApprove ? 'Approve' : 'Deny'} Application - Reason`);
+            .setTitle(`${isApprove ? '批准' : '拒絕'}申請 - 原因`);
 
         reasonModal.addComponents(
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('review_reason')
-                    .setLabel('Reason (optional)')
+                    .setLabel('原因（選填）')
                     .setStyle(TextInputStyle.Paragraph)
-                    .setPlaceholder('Provide a reason for this decision...')
+                    .setPlaceholder('提供此決定的原因...')
                     .setMaxLength(500)
                     .setRequired(false),
             ),
@@ -360,7 +359,7 @@ async function handleReview(interaction) {
 
             if (!reasonSubmit) return;
 
-            const reason = reasonSubmit.fields.getTextInputValue('review_reason').trim() || "No reason provided.";
+            const reason = reasonSubmit.fields.getTextInputValue('review_reason').trim() || "未提供原因。";
             const action = isApprove ? 'approve' : 'deny';
             const status = isApprove ? 'approved' : 'denied';
 
@@ -380,10 +379,10 @@ async function handleReview(interaction) {
                 const statusColor = getApplicationStatusColor(status);
                 const reviewStatus = getApplicationStatusPresentation(status);
                 const dmEmbed = createEmbed({
-                    title: `${reviewStatus.statusEmoji} Application ${reviewStatus.statusLabel}`,
-                    description: `Your application for **${application.roleName}** has been **${status}**\n` +
-                        `**Note:** ${reason}\n\n` +
-                        `Use \`/apply status id:${appId}\` to view details.`
+                    title: `${reviewStatus.statusEmoji} 申請${reviewStatus.statusLabel}`,
+                    description: `你對 **${application.roleName}** 的申請已被 **${status === 'approved' ? '批准' : '拒絕'}**\n` +
+                        `**備註：** ${reason}\n\n` +
+                        `使用 \`/apply status id:${appId}\` 來檢視詳細資訊。`
                 }).setColor(statusColor);
 
                 await user.send({ embeds: [dmEmbed] });
@@ -412,7 +411,7 @@ async function handleReview(interaction) {
                                 const newEmbed = EmbedBuilder.from(embed)
                                     .setColor(statusColor)
                                     .spliceFields(0, 1, {
-                                        name: "Status",
+                                        name: "狀態",
                                         value: `${reviewStatus.statusEmoji} ${reviewStatus.statusLabel}`,
                                     });
 
@@ -451,8 +450,8 @@ async function handleReview(interaction) {
             await reasonSubmit.reply({
                 embeds: [
                     successEmbed(
-                        `Application ${status}`,
-                        `The application has been **${status}**.`,
+                        `申請已${status === 'approved' ? '批准' : '拒絕'}`,
+                        `該申請已被**${status === 'approved' ? '批准' : '拒絕'}**。`,
                     ),
                 ],
                 flags: ["Ephemeral"],
@@ -460,15 +459,15 @@ async function handleReview(interaction) {
 
         } catch (error) {
             logger.error('Error reviewing application:', error);
-            await replyUserError(buttonInteraction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while reviewing the application.' });
+            await replyUserError(buttonInteraction, { type: ErrorTypes.UNKNOWN, message: '審核申請時發生錯誤。' });
         }
     });
 
     collector.on('end', async (collected, reason) => {
         if (reason === 'time') {
             const timeoutEmbed = createEmbed({
-                title: 'Review Timeout',
-                description: 'The review buttons have timed out.',
+                title: '審核逾時',
+                description: '審核按鈕已逾時。',
                 color: 'warning',
             });
 
@@ -506,7 +505,6 @@ async function handleList(interaction) {
                     await interaction.guild.members.fetch(app.userId);
                     return app; 
                 } catch {
-                    
                     await deleteApplication(interaction.client, interaction.guild.id, app.id, app.userId);
                     return null; 
                 }
@@ -523,29 +521,29 @@ async function handleList(interaction) {
         
         if (applicationRoles.length > 0) {
             const embed = createEmbed({ 
-                title: "No Applications Found", 
-                description: "No submitted applications found matching the specified criteria.\n\nHowever, the following application roles are configured:" 
+                title: "找不到申請", 
+                description: "找不到符合指定條件的已提交申請。\n\n不過，已設定下列申請角色：" 
             });
 
             applicationRoles.forEach((appRole, index) => {
                 const role = interaction.guild.roles.cache.get(appRole.roleId);
                 embed.addFields({
                     name: `${index + 1}. ${appRole.name}`,
-                    value: `**Role:** ${role ?`<@&${appRole.roleId}>`: 'Role not found'}\n**Available for applications:** Yes`,
+                    value: `**角色：** ${role ? `<@&${appRole.roleId}>` : '找不到角色'}\n**開放申請：** 是`,
                     inline: false
                 });
             });
 
             embed.setFooter({
-                text: "Users can apply with /apply submit or see available roles with /apply list"
+                text: "使用者可以使用 /apply submit 來申請，或使用 /apply list 查看可用角色"
             });
 
             return InteractionHelper.safeEditReply(interaction, { embeds: [embed], flags: ["Ephemeral"] });
         } else {
             return await replyUserError(interaction, {
                 type: ErrorTypes.CONFIGURATION,
-                message: 'No applications found and no application roles configured.\n' +
-                    'Use `/app-admin roles add` to configure application roles first.'
+                message: '找不到任何申請，且未設定任何申請角色。\n' +
+                    '請先使用 `/app-admin setup` 來設定申請角色。'
             });
         }
     }
@@ -554,23 +552,23 @@ async function handleList(interaction) {
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         .slice(0, limit);
 
-    const embed = createEmbed({ title: "Submitted Applications", description: `Showing ${applications.length} applications.`, });
+    const embed = createEmbed({ title: "已提交的申請", description: `顯示 ${applications.length} 項申請。`, });
 
     applications.forEach((app) => {
         const statusView = getApplicationStatusPresentation(app?.status);
-        const roleName = app?.roleName || 'Unknown Role';
-        const username = app?.username || 'Unknown User';
+        const roleName = app?.roleName || '未知角色';
+        const username = app?.username || '未知使用者';
         const createdAt = app?.createdAt ? new Date(app.createdAt) : null;
         const createdAtDisplay = createdAt && !Number.isNaN(createdAt.getTime())
             ? createdAt.toLocaleString()
-            : 'Unknown date';
+            : '未知日期';
 
         embed.addFields({
             name: `${statusView.statusEmoji} ${roleName} - ${username}`,
             value:
-                `**ID:** \`${app.id}\`\n` +
-                `**Status:** ${statusView.statusEmoji} ${statusView.statusLabel}\n` +
-                `**Date:** ${createdAtDisplay}`,
+                `**ID：** \`${app.id}\`\n` +
+                `**狀態：** ${statusView.statusEmoji} ${statusView.statusLabel}\n` +
+                `**日期：** ${createdAtDisplay}`,
             inline: true,
         });
     });
@@ -580,4 +578,3 @@ async function handleList(interaction) {
         flags: ["Ephemeral"],
     });
 }
-
