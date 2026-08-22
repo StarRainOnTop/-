@@ -9,23 +9,23 @@ import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 export default {
     data: new SlashCommandBuilder()
         .setName("dm")
-        .setDescription("Send a direct message to a user (Staff only)")
+        .setDescription("傳送私訊 (DM) 給使用者（僅限管理人員）")
         .addUserOption(option =>
             option
                 .setName("user")
-                .setDescription("The user to send a DM to")
+                .setDescription("要傳送私訊的使用者")
                 .setRequired(true)
         )
         .addStringOption(option =>
             option
                 .setName("message")
-                .setDescription("The message to send")
+                .setDescription("要傳送的訊息內容")
                 .setRequired(true)
         )
         .addBooleanOption(option =>
             option
                 .setName("anonymous")
-                .setDescription("Send the message anonymously (default: false)")
+                .setDescription("是否以匿名方式傳送訊息（預設：否）")
                 .setRequired(false)
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
@@ -50,11 +50,11 @@ export default {
         try {
             
             if (message.length > 2000) {
-                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Messages must be under 2000 characters.' });
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '訊息長度必須少於 2000 個字元。' });
             }
 
             if (targetUser.bot) {
-                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You cannot send DMs to bot accounts.' });
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '你無法傳送私訊給機器人帳號。' });
             }
 
             const sanitized = sanitizeMarkdown(message);
@@ -64,10 +64,10 @@ export default {
             await dmChannel.send({
                 embeds: [
                     successEmbed(
-                        anonymous ? "Message from the Staff Team" : `Message from ${interaction.user.tag}`,
+                        anonymous ? "來自管理團隊的訊息" : `來自 ${interaction.user.tag} 的訊息`,
                         sanitized
                     ).setFooter({
-                        text: `You cannot reply to this message. | Logger ID: ${interaction.id}`
+                        text: `你無法回覆此訊息。 | 記錄器 ID：${interaction.id}`
                     })
                 ]
             });
@@ -76,10 +76,10 @@ export default {
                 client: interaction.client,
                 guild: interaction.guild,
                 event: {
-                    action: "DM Sent",
+                    action: "已傳送私訊",
                     target: `${targetUser.tag} (${targetUser.id})`,
                     executor: `${interaction.user.tag} (${interaction.user.id})`,
-                    reason: `Anonymous: ${anonymous ? 'Yes' : 'No'}`,
+                    reason: `匿名：${anonymous ? '是' : '否'}`,
                     metadata: {
                         userId: targetUser.id,
                         moderatorId: interaction.user.id,
@@ -92,8 +92,8 @@ export default {
             return await InteractionHelper.safeEditReply(interaction, {
                 embeds: [
                     successEmbed(
-                        "DM Sent",
-                        `Successfully sent a message to ${targetUser.tag}`
+                        "已傳送私訊",
+                        `已成功傳送訊息給 ${targetUser.tag}`
                     ),
                 ],
             });
@@ -101,10 +101,10 @@ export default {
             logger.error('DM command error:', error);
             
 if (error.code === 50007) {
-                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `Could not send a DM to ${targetUser.tag}. They may have DMs disabled.` });
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `無法傳送私訊給 ${targetUser.tag}。他們可能已關閉私人訊息。` });
             }
             
-            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `Failed to send DM: ${error.message}` });
+            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `傳送私訊失敗：${error.message}` });
         }
     }
 };
