@@ -10,7 +10,7 @@ export default {
     data: new SlashCommandBuilder()
         .setName("unlock")
         .setDescription(
-            "Unlocks the current channel (allows @everyone to send messages again).",
+            "解除當前頻道的鎖定 (允許 @everyone 再次傳送訊息)",
         )
 .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
     category: "moderation",
@@ -37,7 +37,7 @@ export default {
                 currentPermissions.has(PermissionFlagsBits.SendMessages) ===
                     null
             ) {
-                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `${channel} is not explicitly locked (everyone can already send messages).` });
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `${channel} 並未被明確鎖定（@everyone 已經可以傳送訊息）。` });
             }
 
             await channel.permissionOverwrites.edit(
@@ -45,20 +45,20 @@ export default {
                 { SendMessages: true },
                 {
                     type: 0,
-                    reason: `Channel unlocked by ${interaction.user.tag}`,
-},
+                    reason: `頻道由 ${interaction.user.tag} 解除鎖定`,
+                },
             );
 
             await logEvent({
                 client,
                 guild: interaction.guild,
                 event: {
-                    action: "Channel Unlocked",
+                    action: "頻道已解鎖",
                     target: channel.toString(),
                     executor: `${interaction.user.tag} (${interaction.user.id})`,
                     metadata: {
                         channelId: channel.id,
-                        category: channel.parent?.name || 'None'
+                        category: channel.parent?.name || '無'
                     }
                 }
             });
@@ -66,14 +66,14 @@ export default {
             await InteractionHelper.safeEditReply(interaction, {
                 embeds: [
                     successEmbed(
-                        `🔓 **Channel Unlocked**`,
-                        `${channel} is now unlocked. You may speak now.`,
+                        `🔓 **頻道已解鎖**`,
+                        `${channel} 現已解除鎖定。大家現在可以發言了。`,
                     ),
                 ],
             });
         } catch (error) {
             logger.error('Unlock command error:', error);
-            await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'An unexpected error occurred while trying to unlock the channel. Check my permissions (I need \'Manage Channels\').' });
+            await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: '嘗試解鎖頻道時發生未預期的錯誤。請檢查我的權限（我需要「管理頻道 (Manage Channels)」權限）。' });
         }
     }
 };
