@@ -3,8 +3,8 @@ import { successEmbed, errorEmbed } from '../../../utils/embeds.js';
 import { logger } from '../../../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../../../utils/errorHandler.js';
 import { addJoinToCreateTrigger, getJoinToCreateConfig } from '../../../utils/database.js';
-
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
+
 export default {
     async execute(interaction, config, client) {
         const category = interaction.options.getChannel('category');
@@ -36,14 +36,14 @@ export default {
             });
 
             const embed = successEmbed(
-                '✅ Join to Create Setup Complete',
-                `Created trigger channel: ${triggerChannel}\n\n` +
-                `**Settings:**\n` +
-                `• Temporary Channel Name Template: \`${nameTemplate}\`\n` +
-                `• User Limit: ${userLimit === 0 ? 'No limit' : userLimit + ' users'}\n` +
-                `• Bitrate: ${bitrate} kbps\n` +
-                `${category ?`• Category: ${category.name}`: '• Category: None (root level)'}\n\n` +
-                `When users join this channel, a temporary voice channel will be created for them.`
+                '✅「加入即創建」系統設定完成',
+                `已建立觸發頻道：${triggerChannel}\n\n` +
+                `**目前設定：**\n` +
+                `• 臨時頻道名稱範本：\`${nameTemplate}\`\n` +
+                `• 人數上限：${userLimit === 0 ? '無限制' : userLimit + ' 人'}\n` +
+                `• 位元率：${bitrate} kbps\n` +
+                `${category ? `• 分類：${category.name}` : '• 分類：無（根目錄）'}\n\n` +
+                `當使用者加入此頻道時，系統將會為其建立一個專屬的臨時語音頻道。`
             );
 
             try {
@@ -71,7 +71,7 @@ export default {
             throw new TitanBotError(
                 `Setup failed: ${error.message}`,
                 ErrorTypes.DISCORD_API,
-                'Failed to set up Join to Create system.'
+                '無法設定「加入即創建」系統。'
             );
         }
     }
