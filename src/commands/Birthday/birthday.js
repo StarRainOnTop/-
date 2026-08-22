@@ -13,15 +13,15 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('birthday')
-        .setDescription('Birthday system commands')
+        .setDescription('生日系統指令')
         .addSubcommand(subcommand =>
             subcommand
                 .setName('set')
-                .setDescription('Set your birthday')
+                .setDescription('設定你的生日')
                 .addIntegerOption(option =>
                     option
                         .setName('month')
-                        .setDescription('Birth month (1-12)')
+                        .setDescription('出生月份 (1-12)')
                         .setRequired(true)
                         .setMinValue(1)
                         .setMaxValue(12)
@@ -29,7 +29,7 @@ export default {
                 .addIntegerOption(option =>
                     option
                         .setName('day')
-                        .setDescription('Birth day (1-31)')
+                        .setDescription('出生日期 (1-31)')
                         .setRequired(true)
                         .setMinValue(1)
                         .setMaxValue(31)
@@ -38,37 +38,37 @@ export default {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('info')
-                .setDescription('View birthday information')
+                .setDescription('檢視生日資訊')
                 .addUserOption(option =>
                     option
                         .setName('user')
-                        .setDescription('User to check birthday for')
+                        .setDescription('要查看生日的使用者')
                         .setRequired(false)
                 )
         )
         .addSubcommand(subcommand =>
             subcommand
                 .setName('list')
-                .setDescription('List all birthdays in the server')
+                .setDescription('列出伺服器中的所有生日')
         )
         .addSubcommand(subcommand =>
             subcommand
                 .setName('remove')
-                .setDescription('Remove your birthday')
+                .setDescription('移除你的生日')
         )
         .addSubcommand(subcommand =>
             subcommand
                 .setName('next')
-                .setDescription('Show upcoming birthdays')
+                .setDescription('顯示即將到來的生日')
         )
         .addSubcommand(subcommand =>
             subcommand
                 .setName('setchannel')
-                .setDescription('Set or disable the channel for birthday announcements. (Manage Server required)')
+                .setDescription('設定或停用生日公告頻道。（需要「管理伺服器」權限）')
                 .addChannelOption(option =>
                     option
                         .setName('channel')
-                        .setDescription('The text channel for announcements. Leave empty to disable.')
+                        .setDescription('用於公告的文字頻道。留空以停用。')
                         .addChannelTypes(ChannelType.GuildText)
                         .setRequired(false)
                 )
@@ -91,7 +91,7 @@ export default {
             case 'setchannel':
                 return await birthdaySetchannel.execute(interaction, config, client);
             default:
-                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Unknown subcommand' });
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '未知的子指令' });
         }
     }
 };
