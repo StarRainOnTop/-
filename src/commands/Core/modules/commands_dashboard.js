@@ -80,22 +80,22 @@ export function buildOverviewEmbed(snapshot, guild) {
 
   const categoryLines = snapshot.categories.map((category) => {
     const icon = getCategoryStatus(category);
-    const subcommandNote = category.commands.some((c) => c.isSubcommand) ? ' · incl. subcommands' : '';
+    const subcommandNote = category.commands.some((c) => c.isSubcommand) ? ' · 含子指令' : '';
     return `${icon} ${category.icon} **${category.displayName}** — ${category.enabledCount}/${category.totalCount}${subcommandNote}`;
   });
 
   const fields = [
     {
-      name: '📊 Summary',
+      name: '📊 摘要',
       value: [
-        `**${snapshot.enabledTotal}/${snapshot.totalCommands}** entries enabled`,
-        `${STATUS.enabled} ${fullyEnabled} fully on · ${STATUS.partial} ${partial} partial · ${STATUS.disabled} ${disabled} off`,
+        `已啟用 **${snapshot.enabledTotal}/${snapshot.totalCommands}** 個項目`,
+        `${STATUS.enabled} ${fullyEnabled} 個完全開啟 · ${STATUS.partial} ${partial} 個部分開啟 · ${STATUS.disabled} ${disabled} 個關閉`,
       ].join('\n'),
       inline: false,
     },
     {
-      name: '🔑 Legend',
-      value: `${STATUS.enabled} All enabled · ${STATUS.partial} Some disabled · ${STATUS.disabled} Category off`,
+      name: '🔑 圖示說明',
+      value: `${STATUS.enabled} 全部啟用 · ${STATUS.partial} 部分停用 · ${STATUS.disabled} 類別已關閉`,
       inline: false,
     },
   ];
@@ -103,37 +103,37 @@ export function buildOverviewEmbed(snapshot, guild) {
   const chunks = chunkLines(categoryLines);
   chunks.forEach((chunk, index) => {
     fields.push({
-      name: index === 0 ? '📁 Categories' : '📁 Categories (cont.)',
+      name: index === 0 ? '📁 類別' : '📁 類別（續）',
       value: chunk,
       inline: false,
     });
   });
 
   fields.push({
-    name: 'How to Use',
+    name: '使用說明',
     value: [
-      '• Select a category below to manage commands and subcommands',
-      '• `/commands disable` — turn off a category or specific command',
-      '• `/commands enable` — turn something back on',
+      '• 在下方選擇一個類別以管理指令與子指令',
+      '• \`/commands disable\` — 關閉某個類別或特定指令',
+      '• \`/commands enable\` — 重新開啟功能',
     ].join('\n'),
   });
 
   return createEmbed({
-    title: '⚙️ Command Access',
-    description: `Manage slash and prefix commands for **${guild.name}**. Subcommands (e.g. \`birthday list\`) are listed separately.`,
+    title: '⚙️ 指令存取權限',
+    description: `管理 **${guild.name}** 的斜線指令與前綴指令。子指令（例如 \`birthday list\`）會獨立列出。`,
     color: 'info',
     fields,
-    footer: '🔒 commands & configwizard always stay available',
+    footer: '🔒 commands 與 configwizard 永遠保持可用狀態',
   });
 }
 
 export function buildCategoryEmbed(category, guild) {
   const statusIcon = getCategoryStatus(category);
   const statusText = category.categoryDisabled
-    ? 'Category disabled'
+    ? '類別已停用'
     : category.disabledCount === 0
-      ? 'All entries enabled'
-      : `${category.disabledCount} of ${category.totalCount} disabled`;
+      ? '所有項目皆已啟用'
+      : `已停用 ${category.disabledCount} / ${category.totalCount} 個項目`;
 
   const commandLines = category.commands.map((command) => {
     const enabled = category.enabledCommands.includes(command.name);
@@ -144,13 +144,13 @@ export function buildCategoryEmbed(category, guild) {
 
   const fields = [
     {
-      name: `${statusIcon} Status`,
+      name: `${statusIcon} 狀態`,
       value: statusText,
       inline: true,
     },
     {
-      name: '📈 Count',
-      value: `${category.enabledCount}/${category.totalCount} enabled`,
+      name: '📈 計數',
+      value: `已啟用 ${category.enabledCount}/${category.totalCount}`,
       inline: true,
     },
   ];
@@ -158,27 +158,27 @@ export function buildCategoryEmbed(category, guild) {
   const chunks = chunkLines(commandLines);
   chunks.forEach((chunk, index) => {
     fields.push({
-      name: index === 0 ? '📋 Commands & Subcommands' : '📋 (cont.)',
+      name: index === 0 ? '📋 指令與子指令' : '📋 （續）',
       value: chunk,
       inline: false,
     });
   });
 
   fields.push({
-    name: 'How to Use',
+    name: '使用說明',
     value: [
-      '• Use the dropdown to toggle individual commands or subcommands',
-      '• **Disable All** turns off the whole category',
-      '• **Clear Overrides** re-enables individually disabled entries',
+      '• 使用下拉選單來切換個別指令或子指令',
+      '• **全部停用** 會關閉整個類別',
+      '• **清除覆寫** 會重新啟用個別停用的項目',
     ].join('\n'),
   });
 
   return createEmbed({
     title: `${category.icon} ${category.displayName}`,
-    description: `Command access for **${guild.name}**.`,
+    description: `**${guild.name}** 的指令存取權限。`,
     color: category.categoryDisabled ? 'error' : category.disabledCount > 0 ? 'warning' : 'success',
     fields,
-    footer: '🔒 Protected entries cannot be disabled',
+    footer: '🔒 受保護的項目無法被停用',
   });
 }
 
@@ -187,7 +187,7 @@ export function buildOverviewComponents(guildId, snapshot) {
     const status = getCategoryStatus(category);
     return new StringSelectMenuOptionBuilder()
       .setLabel(`${category.displayName}`.slice(0, 100))
-      .setDescription(`${status} ${category.enabledCount}/${category.totalCount} enabled`.slice(0, 100))
+      .setDescription(`${status} 已啟用 ${category.enabledCount}/${category.totalCount}`.slice(0, 100))
       .setValue(category.key)
       .setEmoji(category.icon);
   });
@@ -196,13 +196,13 @@ export function buildOverviewComponents(guildId, snapshot) {
     new ActionRowBuilder().addComponents(
       new StringSelectMenuBuilder()
         .setCustomId(customId(DASHBOARD_CATEGORY_SELECT, guildId))
-        .setPlaceholder('📁 Select a category...')
+        .setPlaceholder('📁 選擇一個類別...')
         .addOptions(categoryOptions),
     ),
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(customId(DASHBOARD_REFRESH, guildId))
-        .setLabel('Refresh')
+        .setLabel('重新整理')
         .setEmoji('🔄')
         .setStyle(ButtonStyle.Secondary),
     ),
@@ -219,7 +219,7 @@ export function buildCategoryComponents(guildId, category) {
 
     return new StringSelectMenuOptionBuilder()
       .setLabel(label)
-      .setDescription((enabled ? '🟢 Enabled — click to disable' : '🔴 Disabled — click to enable').slice(0, 100))
+      .setDescription((enabled ? '🟢 已啟用 — 點擊以停用' : '🔴 已停用 — 點擊以啟用').slice(0, 100))
       .setValue(command.name);
   });
 
@@ -227,27 +227,27 @@ export function buildCategoryComponents(guildId, category) {
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(customId(DASHBOARD_HOME, guildId))
-        .setLabel('Back')
+        .setLabel('返回')
         .setEmoji('◀️')
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(customId(DASHBOARD_TOGGLE_CATEGORY, guildId, category.key))
-        .setLabel(category.categoryDisabled ? 'Enable Category' : 'Disable Category')
+        .setLabel(category.categoryDisabled ? '啟用類別' : '停用類別')
         .setEmoji(category.categoryDisabled ? '🟢' : '🔴')
         .setStyle(category.categoryDisabled ? ButtonStyle.Success : ButtonStyle.Danger),
       new ButtonBuilder()
         .setCustomId(customId(DASHBOARD_ENABLE_ALL, guildId, category.key))
-        .setLabel('Enable All')
+        .setLabel('全部啟用')
         .setEmoji('✅')
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
         .setCustomId(customId(DASHBOARD_DISABLE_ALL, guildId, category.key))
-        .setLabel('Disable All')
+        .setLabel('全部停用')
         .setEmoji('⛔')
         .setStyle(ButtonStyle.Danger),
       new ButtonBuilder()
         .setCustomId(customId(DASHBOARD_RESET_COMMANDS, guildId, category.key))
-        .setLabel('Clear Overrides')
+        .setLabel('清除覆寫')
         .setEmoji('🧹')
         .setStyle(ButtonStyle.Secondary),
     ),
@@ -258,7 +258,7 @@ export function buildCategoryComponents(guildId, category) {
       new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
           .setCustomId(customId(DASHBOARD_COMMAND_SELECT, guildId, category.key))
-          .setPlaceholder('Toggle a command or subcommand...')
+          .setPlaceholder('切換指令或子指令的狀態...')
           .addOptions(commandOptions),
       ),
     );
@@ -301,7 +301,7 @@ export async function handleDashboardComponent(interaction, client) {
 
   if (guildId !== interaction.guildId) {
     return interaction.reply({
-      content: 'This dashboard belongs to another server.',
+      content: '此儀表板屬於其他伺服器。',
       ephemeral: true,
     });
   }
@@ -373,7 +373,7 @@ export async function handleDashboardComponent(interaction, client) {
     return interaction.editReply({ embeds: [view.embed], components: view.components });
   }
 
-  return interaction.editReply({ content: 'Unknown dashboard action.', embeds: [], components: [] });
+  return interaction.editReply({ content: '未知的儀表板動作。', embeds: [], components: [] });
 }
 
 export function isCommandAccessCustomId(customIdValue) {
