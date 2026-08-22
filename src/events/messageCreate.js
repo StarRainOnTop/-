@@ -155,26 +155,37 @@ async function handleCountingGame(message, client) {
 
     const content = message.content.trim();
     const validCount = isValidCountingMessage(content, config);
-    const invalidAttempt = !validCount || message.author.id === config.lastUserId;
+    
+    // 檢查是否為同一個人連續輸入
+    const isConsecutiveUser = message.author.id === config.lastUserId;
 
-    if (invalidAttempt) {
+    // 1. 如果連續輸入，刪除訊息並發送提示
+    if (isConsecutiveUser) {
       await message.delete().catch(() => {});
-      await saveCountingGameConfig(client, message.guild.id, {
-        ...config,
-        nextNumber: 1,
-        lastUserId: null,
-        currentStreak: 0,
-      });
-
-      const failureMessage = await message.channel.send(`❌ Count broken by <@${message.author.id}>. The sequence has been reset to **1**.`);
+      const warningMsg = await message.channel.send(`<@${message.author.id}> 你不能連續輸入兩個數字！`).catch(() => {});
       setTimeout(() => {
-        failureMessage.delete().catch(() => {});
-      }, 10000);
+        warningMsg?.delete().catch(() => {});
+      }, 4000);
+      return true;
+    }
+
+    // 2. 如果數字輸入錯誤，刪除訊息並提示預期正確的數字
+    if (!validCount) {
+      await message.delete().catch(() => {});
+      
+      const expectedValue = config.nextNumber || (config.currentCount ? config.currentCount + 1 : 1);
+      
+      const warningMsg = await message.channel.send(`<@${message.author.id}> 數字錯誤！目前的正確數字應該是 **${expectedValue}** 喔！`).catch(() => {});
+      setTimeout(() => {
+        warningMsg?.delete().catch(() => {});
+      }, 4000);
 
       return true;
     }
 
+    // 3. 數字正確，正常記錄
     await recordCorrectCount(client, message.guild.id, message.author.id);
+    await message.react('✅').catch(() => {});
     return true;
   } catch (error) {
     logger.error('Error handling counting game:', error);
