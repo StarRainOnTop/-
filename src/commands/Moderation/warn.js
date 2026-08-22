@@ -9,18 +9,18 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
     data: new SlashCommandBuilder()
         .setName("warn")
-        .setDescription("Warn a user")
+        .setDescription("警告使用者 (Warn)")
         .addUserOption((o) =>
             o
                 .setName("target")
                 .setRequired(true)
-                .setDescription("User to warn"),
+                .setDescription("要警告的使用者"),
         )
         .addStringOption((o) =>
             o
                 .setName("reason")
                 .setRequired(true)
-                .setDescription("Reason for the warning"),
+                .setDescription("警告原因"),
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
     category: "moderation",
@@ -46,7 +46,7 @@ export default {
             throw new TitanBotError(
                 'Missing target user',
                 ErrorTypes.USER_INPUT,
-                'You must specify a user to warn.',
+                '你必須指定要警告的使用者。',
                 { subtype: 'invalid_user' },
             );
         }
@@ -55,7 +55,7 @@ export default {
             throw new TitanBotError(
                 'Missing warning reason',
                 ErrorTypes.VALIDATION,
-                'You must provide a reason for the warning.',
+                '你必須提供警告原因。',
                 { subtype: 'missing_required' },
             );
         }
@@ -64,7 +64,7 @@ export default {
             throw new TitanBotError(
                 "Target not found",
                 ErrorTypes.USER_INPUT,
-                "The target user is not currently in this server."
+                "目標使用者目前不在本伺服器中。"
             );
         }
 
@@ -99,8 +99,8 @@ export default {
         await InteractionHelper.safeEditReply(interaction, {
             embeds: [
                 successEmbed(
-                    `⚠️ **Warned** ${target.tag}`,
-                    `**Reason:** ${reason}\n**Total Warns:** ${totalCount}`,
+                    `⚠️ **已警告** ${target.tag}`,
+                    `**原因：** ${reason}\n**累計警告次數：** ${totalCount}`,
                 ),
             ],
         });
