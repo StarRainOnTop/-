@@ -9,25 +9,40 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('inventory')
-        .setDescription('查看你的經濟背包道具、升級項目與保險箱狀態'),
+        .setDescription('查看你或其他人的經濟背包道具、升級項目與保險箱狀態')
+        .addUserOption(option =>
+            option
+                .setName('user')
+                .setDescription('要查詢背包的使用者（選填，不填則預設為自己）')
+                .setRequired(false)
+        ),
 
     execute: withErrorHandling(async (interaction, config, client) => {
         const deferred = await InteractionHelper.safeDefer(interaction);
         if (!deferred) return;
 
-        const userId = interaction.user.id;
+        const userOption = interaction.options.getUser('user');
+        const targetUser = userOption || interaction.user;
         const guildId = interaction.guildId;
 
-        logger.debug(`[ECONOMY] Inventory requested for ${userId}`, { userId, guildId });
+        logger.debug(`[ECONOMY] Inventory requested for ${targetUser.id}`, { userId: targetUser.id, guildId });
 
-        const userData = await getEconomyData(client, guildId, userId);
+        if (targetUser.bot) {
+            throw createError(
+                "Bot user queried for inventory",
+                ErrorTypes.VALIDATION,
+                "機器人沒有經濟背包或資產。"
+            );
+        }
+
+        const userData = await getEconomyData(client, guildId, targetUser.id);
 
         if (!userData) {
             throw createError(
                 "Failed to load economy data for inventory",
                 ErrorTypes.DATABASE,
-                "無法載入您的經濟數據，請稍後再試。",
-                { userId, guildId }
+                `無法載入該玩家的經濟數據，請稍後再試。`,
+                { userId: targetUser.id, guildId }
             );
         }
 
@@ -87,12 +102,12 @@ export default {
         });
 
         const embed = createEmbed({
-            title: `🎒 ${interaction.user.username} 的個人資產與背包`,
+            title: `🎒 ${targetUser.username} 的個人資產與背包`,
             fields: fields,
-        }).setThumbnail(interaction.user.displayAvatarURL());
+        }).setThumbnail(targetUser.displayAvatarURL());
 
         logger.info(`[ECONOMY] Inventory retrieved`, {
-            userId,
+            userId: targetUser.id,
             guildId,
             itemCount: Object.keys(inventory).length,
             upgradeCount: Object.keys(upgrades).length,
