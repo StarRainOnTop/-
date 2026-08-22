@@ -15,8 +15,8 @@ export default {
         if (sortedBirthdays.length === 0) {
             const embed = new EmbedBuilder()
                 .setColor(0xFF0000)
-                .setTitle('No Birthdays')
-                .setDescription('No birthdays have been set in this server yet.');
+                .setTitle('找不到生日')
+                .setDescription('此伺服器中尚未設定任何生日。');
             return await InteractionHelper.safeEditReply(interaction, {
                 embeds: [embed]
             });
@@ -35,7 +35,7 @@ export default {
                 continue;
             }
             displayIndex++;
-            birthdayList += `${displayIndex}. <@${birthday.userId}> - ${birthday.monthName} ${birthday.day}\n`;
+            birthdayList += `${displayIndex}. <@${birthday.userId}> - ${birthday.monthName} ${birthday.day}日\n`;
         }
 
         if (fetchedMembers && staleUserIds.length > 0) {
@@ -47,25 +47,25 @@ export default {
         if (displayIndex === 0) {
             const embed = new EmbedBuilder()
                 .setColor(0xFF0000)
-                .setTitle('No Birthdays')
-                .setDescription('No birthdays have been set by current server members.');
+                .setTitle('找不到生日')
+                .setDescription('目前的伺服器成員尚未設定任何生日。');
             return await InteractionHelper.safeEditReply(interaction, {
                 embeds: [embed]
             });
         }
 
-        birthdayList = `**${displayIndex} birthday${displayIndex !== 1 ? 's' : ''} in ${interaction.guild.name}**\n\n` + birthdayList;
+        birthdayList = `**${interaction.guild.name} 共有 ${displayIndex} 個生日**\n\n` + birthdayList;
 
         const embed = new EmbedBuilder()
             .setColor(0x00FF00)
-            .setTitle('Server Birthdays')
-            .setDescription(`${birthdayList}\n\nTotal: ${displayIndex} birthday${displayIndex !== 1 ? 's' : ''}`);
+            .setTitle('伺服器生日列表')
+            .setDescription(`${birthdayList}\n\n總計：${displayIndex} 個生日`);
 
         await InteractionHelper.safeEditReply(interaction, {
             embeds: [embed]
         });
 
-        logger.info('Birthday list retrieved successfully', {
+        logger.info('成功取得生日列表', {
             userId: interaction.user.id,
             guildId,
             birthdayCount: displayIndex,
