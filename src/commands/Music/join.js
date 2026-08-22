@@ -7,7 +7,7 @@ export default {
     category: 'Music',
     data: new SlashCommandBuilder()
         .setName('join')
-        .setDescription('Join your voice channel without starting playback'),
+        .setDescription('讓機器人加入你的語音頻道而不開始播放音樂 (Join)'),
 
     async execute(interaction, config, client) {
         await deferMusicCommand(interaction);
