@@ -21,10 +21,10 @@ import {
 function getApplicationStatusPresentation(statusValue) {
     const normalized = typeof statusValue === 'string' ? statusValue.trim().toLowerCase() : 'unknown';
     const statusLabel =
-        normalized === 'pending' ? 'In Progress' :
-        normalized === 'approved' ? 'Accepted' :
-        normalized === 'denied' ? 'Denied' :
-        'Unknown';
+        normalized === 'pending' ? '審核中' :
+        normalized === 'approved' ? '已接受' :
+        normalized === 'denied' ? '已拒絕' :
+        '未知';
     const statusEmoji =
         normalized === 'pending' ? '🟡' :
         normalized === 'approved' ? '🟢' :
@@ -38,15 +38,15 @@ export default {
     slashOnly: true,
     data: new SlashCommandBuilder()
         .setName("apply")
-        .setDescription("Manage role applications")
+        .setDescription("管理身分組申請")
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("submit")
-                .setDescription("Submit an application for a role")
+                .setDescription("提交身分組申請")
                 .addStringOption((option) =>
                     option
                         .setName("application")
-                        .setDescription("The application you want to submit")
+                        .setDescription("你想提交的申請")
                         .setRequired(true)
                         .setAutocomplete(true),
                 ),
@@ -54,25 +54,25 @@ export default {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("status")
-                .setDescription("Check the status of your application")
+                .setDescription("檢查你的申請狀態")
                 .addStringOption((option) =>
                     option
                         .setName("id")
-                        .setDescription("Application ID (leave empty to see all)")
+                        .setDescription("申請 ID（留空以檢視全部）")
                         .setRequired(false),
                 ),
         )
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("list")
-                .setDescription("List available applications to apply for"),
+                .setDescription("列出可供申請的身分組"),
         ),
 
     category: "Community",
 
     execute: withErrorHandling(async (interaction) => {
         if (!interaction.inGuild()) {
-            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'This command can only be used in a server.' });
+            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '此指令只能在伺服器中使用。' });
         }
 
         const { options, guild, member } = interaction;
@@ -98,7 +98,7 @@ export default {
             throw createError(
                 'Applications are disabled',
                 ErrorTypes.CONFIGURATION,
-                'Applications are currently disabled in this server.',
+                '本伺服器目前已關閉申請功能。',
                 { guildId: guild.id }
             );
         }
@@ -125,13 +125,13 @@ export async function handleApplicationModal(interaction) {
     const applicationRole = applicationRoles.find(appRole => appRole.roleId === roleId);
     
     if (!applicationRole) {
-        return await replyUserError(interaction, { type: ErrorTypes.CONFIGURATION, message: 'Application configuration not found.' });
+        return await replyUserError(interaction, { type: ErrorTypes.CONFIGURATION, message: '找不到申請設定。' });
     }
     
     const role = interaction.guild.roles.cache.get(roleId);
     
     if (!role) {
-        return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'Role not found.' });
+        return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: '找不到此身分組。' });
     }
     
     const answers = [];
@@ -163,10 +163,10 @@ export async function handleApplicationModal(interaction) {
         });
         
         const embed = successEmbed(
-            'Application Submitted',
-            `Your application for **${applicationRole.name}** has been submitted successfully!\n\n` +
-            `Application ID: \`${application.id}\`\n` +
-            `You can check the status with \`/apply status id:${application.id}\``
+            '已提交申請',
+            `你對 **${applicationRole.name}** 的申請已成功提交！\n\n` +
+            `申請 ID：\`${application.id}\`\n` +
+            `你可以使用 \`/apply status id:${application.id}\` 來檢查狀態`
         );
         
         await InteractionHelper.safeEditReply(interaction, { embeds: [embed], flags: ["Ephemeral"] });
@@ -184,15 +184,15 @@ export async function handleApplicationModal(interaction) {
                 eventType: EVENT_TYPES.APPLICATION_SUBMIT,
                 channelId: logChannelId,
                 data: {
-                    title: 'Application Submitted',
+                    title: '已提交申請',
                     lines: [
-                        formatLogLine('Applicant', `<@${interaction.user.id}> (${interaction.user.tag})`),
-                        formatLogLine('Application', applicationRole.name),
-                        formatLogLine('Role', role.name),
-                        formatLogLine('Application ID', `\`${application.id}\``),
+                        formatLogLine('申請者', `<@${interaction.user.id}> (${interaction.user.tag})`),
+                        formatLogLine('申請項目', applicationRole.name),
+                        formatLogLine('身分組', role.name),
+                        formatLogLine('申請 ID', `\`${application.id}\``),
                     ],
                     inlineFields: [
-                        { name: 'Status', value: '🟡 In Progress', inline: true },
+                        { name: '狀態', value: '🟡 審核中', inline: true },
                     ],
                     author: await resolveUserAuthor(interaction.client, interaction.user.id),
                 },
@@ -227,26 +227,26 @@ async function handleList(interaction) {
         const applicationRoles = await getApplicationRoles(interaction.client, interaction.guild.id);
         
         if (applicationRoles.length === 0) {
-            return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'No applications are currently available.' });
+            return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: '目前沒有可用的申請。' });
         }
 
         const embed = createEmbed({
-            title: "Available Applications",
-            description: "Here are the roles you can apply for:"
+            title: "可用的申請",
+            description: "以下是可以申請的身分組："
         });
 
         applicationRoles.forEach((appRole, index) => {
             const role = interaction.guild.roles.cache.get(appRole.roleId);
             embed.addFields({
                 name: `${index + 1}. ${appRole.name}`,
-                value: `**Role:** ${role ?`<@&${appRole.roleId}>`: 'Role not found'}\n` +
-                       `**Apply with:** \`/apply submit application:"${appRole.name}"\``,
+                value: `**身分組：** ${role ? `<@&${appRole.roleId}>` : '找不到身分組'}\n` +
+                       `**申請指令：** \`/apply submit application:"${appRole.name}"\``,
                 inline: false
             });
         });
 
         embed.setFooter({
-            text: "Use /apply submit application:<name> to apply for any of these roles."
+            text: "使用 /apply submit application:<名稱> 來申請這些身分組。"
         });
 
         return InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
@@ -260,7 +260,7 @@ async function handleList(interaction) {
         throw createError(
             'Failed to load applications',
             ErrorTypes.DATABASE,
-            'Failed to load applications. Please try again later.',
+            '載入申請失敗，請稍後再試。',
             { guildId: interaction.guild.id }
         );
     }
@@ -277,7 +277,7 @@ async function handleSubmit(interaction, settings) {
     );
 
     if (!applicationRole) {
-        return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'Use `/apply list` to see available applications.' });
+        return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: '請使用 `/apply list` 來查看可用的申請。' });
     }
 
     const userApps = await getUserApplications(
@@ -288,17 +288,17 @@ async function handleSubmit(interaction, settings) {
     const pendingApp = userApps.find((app) => app.status === "pending");
 
     if (pendingApp) {
-        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You already have a pending application. Please wait for it to be reviewed.' });
+        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '你已經有一項審核中的申請了，請等待其審核完成。' });
     }
 
     const role = interaction.guild.roles.cache.get(applicationRole.roleId);
     if (!role) {
-        return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'The role for this application no longer exists.' });
+        return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: '此申請對應的身分組已不存在。' });
     }
 
     const modal = new ModalBuilder()
         .setCustomId(`app_modal_${applicationRole.roleId}`)
-        .setTitle(`Application for ${applicationRole.name}`);
+        .setTitle(`申請 ${applicationRole.name}`);
 
     let questions = settings.questions?.length ? settings.questions : getDefaultApplicationQuestions();
     const roleSettings = await getApplicationRoleSettings(interaction.client, interaction.guild.id, applicationRole.roleId);
@@ -336,20 +336,20 @@ async function handleStatus(interaction) {
         );
 
         if (!application || application.userId !== interaction.user.id) {
-            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'Application not found or you do not have permission to view it.' });
+            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: '找不到此申請，或者你沒有權限檢視它。' });
         }
 
         const submittedAt = application?.createdAt ? new Date(application.createdAt) : null;
         const submittedAtDisplay = submittedAt && !Number.isNaN(submittedAt.getTime())
             ? submittedAt.toLocaleString()
-            : 'Unknown date';
+            : '未知日期';
         const statusView = getApplicationStatusPresentation(application.status);
         const embed = createEmbed({
-            title: `Application #${application.id} - ${application.roleName || 'Unknown Role'}`,
+            title: `申請 #${application.id} - ${application.roleName || '未知身分組'}`,
             description:
-                `**Application ID:** \`${application.id}\`\n` +
-                `**Status:** ${statusView.statusEmoji} ${statusView.statusLabel}\n` +
-                `**Submitted:** ${submittedAtDisplay}`
+                `**申請 ID：** \`${application.id}\`\n` +
+                `**狀態：** ${statusView.statusEmoji} ${statusView.statusLabel}\n` +
+                `**提交時間：** ${submittedAtDisplay}`
         });
 
         return InteractionHelper.safeEditReply(interaction, { embeds: [embed], flags: ["Ephemeral"] });
@@ -361,7 +361,7 @@ async function handleStatus(interaction) {
         );
 
         if (applications.length === 0) {
-            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You have not submitted any applications yet.' });
+            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '你尚未提交任何申請。' });
         }
 
         const recentApplications = applications
@@ -369,29 +369,29 @@ async function handleStatus(interaction) {
             .slice(0, 10);
 
         const embed = createEmbed({
-            title: "Your Applications",
-            description: `Showing ${recentApplications.length} recent application(s).`
+            title: "你的申請記錄",
+            description: `顯示最近 ${recentApplications.length} 項申請。`
         });
 
         recentApplications.forEach((application) => {
             const submittedAt = application?.createdAt ? new Date(application.createdAt) : null;
             const submittedAtDisplay = submittedAt && !Number.isNaN(submittedAt.getTime())
                 ? submittedAt.toLocaleDateString()
-                : 'Unknown date';
+                : '未知日期';
             const statusView = getApplicationStatusPresentation(application.status);
 
             embed.addFields({
-                name: `${statusView.statusEmoji} ${application.roleName || 'Unknown Role'} (${statusView.statusLabel})`,
+                name: `${statusView.statusEmoji} ${application.roleName || '未知身分組'} (${statusView.statusLabel})`,
                 value:
-                    `**ID:** \`${application.id}\`\n` +
-                    `**Status:** ${statusView.statusEmoji} ${statusView.statusLabel}\n` +
-                    `**Submitted:** ${submittedAtDisplay}`,
+                    `**ID：** \`${application.id}\`\n` +
+                    `**狀態：** ${statusView.statusEmoji} ${statusView.statusLabel}\n` +
+                    `**提交時間：** ${submittedAtDisplay}`,
                 inline: true,
             });
         });
 
         if (applications.length > recentApplications.length) {
-            embed.setFooter({ text: `Showing latest ${recentApplications.length} of ${applications.length} applications.` });
+            embed.setFooter({ text: `顯示總共 ${applications.length} 項申請中的最近 ${recentApplications.length} 項。` });
         }
 
         return InteractionHelper.safeEditReply(interaction, { embeds: [embed], flags: ["Ephemeral"] });
