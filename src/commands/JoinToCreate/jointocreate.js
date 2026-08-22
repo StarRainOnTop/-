@@ -17,25 +17,25 @@ import {
 export default {
     data: new SlashCommandBuilder()
         .setName("jointocreate")
-        .setDescription("Manage Join to Create voice channels system.")
+        .setDescription("管理「加入即創建」語音頻道系統。")
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .setDMPermission(false)
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("setup")
-                .setDescription("Set up a new Join to Create voice channel.")
+                .setDescription("設定一個新的「加入即創建」語音頻道。")
                 .addChannelOption((option) =>
                     option
                         .setName("category")
-                        .setDescription("Category to create the channel in.")
+                        .setDescription("要建立頻道的分類頻道。")
                         .addChannelTypes(ChannelType.GuildCategory)
                 )
                 .addStringOption((option) =>
                     option
                         .setName("channel_name")
-                        .setDescription("Select a template for naming temporary voice channels.")
+                        .setDescription("選擇臨時語音頻道的名稱範本。")
                         .addChoices(
-                            { name: "{username}'s Room (Default)", value: "{username}'s Room" },
+                            { name: "{username}'s Room (預設)", value: "{username}'s Room" },
                             { name: "{username}'s Channel", value: "{username}'s Channel" },
                             { name: "{username}'s Lounge", value: "{username}'s Lounge" },
                             { name: "{username}'s Space", value: "{username}'s Space" },
@@ -50,22 +50,22 @@ export default {
                 .addIntegerOption((option) =>
                     option
                         .setName("user_limit")
-                        .setDescription("Maximum number of users in temporary channels. (0 = unlimited)")
+                        .setDescription("臨時頻道的人數上限。(0 = 無限制)")
                 )
                 .addIntegerOption((option) =>
                     option
                         .setName("bitrate")
-                        .setDescription("Bitrate for temporary channels in kbps (8-96).")
+                        .setDescription("臨時頻道的位元率，單位為 kbps (8-384)。")
                 )
         )
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("dashboard")
-                .setDescription("Configure an existing Join to Create system.")
+                .setDescription("設定現有的「加入即創建」系統。")
                 .addChannelOption((option) =>
                     option
                         .setName("trigger_channel")
-                        .setDescription("The Join to Create trigger channel to configure.")
+                        .setDescription("要設定的「加入即創建」觸發頻道。")
                         .setRequired(true)
                         .addChannelTypes(ChannelType.GuildVoice)
                 )
@@ -74,19 +74,16 @@ export default {
 
     async execute(interaction, config, client) {
         try {
-            
             if (!hasManageGuildPermission(interaction.member)) {
                 throw new TitanBotError(
                     'User lacks ManageGuild permission',
                     ErrorTypes.PERMISSION,
-                    'You need **Manage Server** permission to use this command.'
+                    '你需要 **管理伺服器** 權限才能使用此指令。'
                 );
             }
 
             const subcommand = interaction.options.getSubcommand();
             await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
-
-            let responseEmbed;
 
             if (subcommand === "setup") {
                 await handleSetupSubcommand(interaction, client);
@@ -98,14 +95,14 @@ export default {
 
         } catch (error) {
             try {
-                let errorMessage = 'An error occurred while executing this command.';
+                let errorMessage = '執行此指令時發生錯誤。';
                 
                 if (error instanceof TitanBotError) {
-                    errorMessage = error.userMessage || 'An error occurred. Please try again.';
+                    errorMessage = error.userMessage || '發生錯誤，請再試一次。';
                     logger.debug(`TitanBotError [${error.type}]: ${error.message}`, error.context || {});
                 } else {
                     logger.error('Unexpected error in jointocreate command:', error);
-                    errorMessage = 'An unexpected error occurred. Please try again or contact support.';
+                    errorMessage = '發生未預期的錯誤，請再試一次或聯絡支援人員。';
                 }
 
                 return replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: errorMessage });
@@ -150,7 +147,7 @@ async function handleSetupSubcommand(interaction, client) {
 
             if (activeTriggerChannels.length > 0) {
                 const primaryTrigger = activeTriggerChannels[0];
-                const errorMessage = `This server already has a Join to Create channel set up: ${primaryTrigger}\n\nUse \`/jointocreate dashboard\` to modify it, or remove it first before creating a new one.`;
+                const errorMessage = `此伺服器已經設定了一個「加入即創建」頻道：${primaryTrigger}\n\n請使用 \`/jointocreate dashboard\` 進行修改，或先將其移除後再建立新的。`;
 
                 throw new TitanBotError(
                     'Guild already has a Join to Create channel',
@@ -200,13 +197,13 @@ async function handleSetupSubcommand(interaction, client) {
         logger.info(`Successfully created Join to Create system in guild ${guildId}`);
 
         const responseEmbed = successEmbed(
-            '✅ Setup Complete',
-            `Created Join to Create channel: ${triggerChannel}\n\n` +
-            `**Settings:**\n` +
-            `• Template: \`${nameTemplate}\`\n` +
-            `• User Limit: ${userLimit === 0 ? 'Unlimited' : userLimit + ' users'}\n` +
-            `• Bitrate: ${bitrate} kbps\n` +
-            `${category ?`• Category: ${category.name}`: '• Category: Root level'}`
+            '✅ 設定完成',
+            `已建立「加入即創建」頻道：${triggerChannel}\n\n` +
+            `**目前設定：**\n` +
+            `• 頻道名稱範本：\`${nameTemplate}\`\n` +
+            `• 人數上限：${userLimit === 0 ? '無限制' : userLimit + ' 人'}\n` +
+            `• 位元率：${bitrate} kbps\n` +
+            `${category ? `• 分類：${category.name}` : '• 分類：根目錄'}`
         );
 
         return await InteractionHelper.safeEditReply(interaction, { embeds: [responseEmbed] });
@@ -219,7 +216,7 @@ async function handleSetupSubcommand(interaction, client) {
         throw new TitanBotError(
             `Setup failed: ${error.message}`,
             ErrorTypes.DISCORD_API,
-            'Failed to set up Join to Create system. Please check bot permissions.'
+            '無法設定「加入即創建」系統，請檢查機器人權限。'
         );
     }
 }
@@ -233,47 +230,47 @@ async function handleConfigSubcommand(interaction, client) {
         const channelConfig = currentConfig.channelConfig || {};
 
         const configEmbed = new EmbedBuilder()
-            .setTitle('Join to Create Configuration')
-            .setDescription(`Configuration for ${triggerChannel}`)
+            .setTitle('「加入即創建」系統設定')
+            .setDescription(`${triggerChannel} 的設定`)
             .setColor(getColor('info'))
             .addFields(
                 {
-                    name: 'Channel Name Template',
+                    name: '頻道名稱範本',
                     value: `\`${channelConfig.nameTemplate || currentConfig.channelNameTemplate || "{username}'s Room"}\``,
                     inline: false
                 },
                 {
-                    name: 'User Limit',
-                    value: `${(channelConfig.userLimit ?? currentConfig.userLimit ?? 0) === 0 ? 'Unlimited' : (channelConfig.userLimit ?? currentConfig.userLimit ?? 0) + ' users'}`,
+                    name: '人數上限',
+                    value: `${(channelConfig.userLimit ?? currentConfig.userLimit ?? 0) === 0 ? '無限制' : (channelConfig.userLimit ?? currentConfig.userLimit ?? 0) + ' 人'}`,
                     inline: true
                 },
                 {
-                    name: 'Bitrate',
+                    name: '位元率',
                     value: `${(channelConfig.bitrate ?? currentConfig.bitrate ?? 64000) / 1000} kbps`,
                     inline: true
                 }
             )
-            .setFooter({ text: 'Use the buttons below to modify settings • Only one trigger channel is supported per guild' })
+            .setFooter({ text: '使用下方按鈕修改設定 • 每個伺服器僅支援一個觸發頻道' })
             .setTimestamp();
 
         const nameButton = new ButtonBuilder()
             .setCustomId(`jtc_config_name_${triggerChannel.id}`)
-            .setLabel('📝 Name Template')
+            .setLabel('📝 頻道名稱範本')
             .setStyle(ButtonStyle.Primary);
 
         const limitButton = new ButtonBuilder()
             .setCustomId(`jtc_config_limit_${triggerChannel.id}`)
-            .setLabel('👥 User Limit')
+            .setLabel('👥 人數上限')
             .setStyle(ButtonStyle.Primary);
 
         const bitrateButton = new ButtonBuilder()
             .setCustomId(`jtc_config_bitrate_${triggerChannel.id}`)
-            .setLabel('🎵 Bitrate')
+            .setLabel('🎵 位元率')
             .setStyle(ButtonStyle.Primary);
 
         const deleteButton = new ButtonBuilder()
             .setCustomId(`jtc_config_delete_${triggerChannel.id}`)
-            .setLabel('🗑️ Remove Channel')
+            .setLabel('🗑️ 移除頻道')
             .setStyle(ButtonStyle.Danger);
 
         const row = new ActionRowBuilder().addComponents(nameButton, limitButton, bitrateButton, deleteButton);
@@ -289,7 +286,7 @@ async function handleConfigSubcommand(interaction, client) {
             throw new TitanBotError(
                 'Failed to fetch interaction reply for collector setup',
                 ErrorTypes.DISCORD_API,
-                'Failed to open configuration controls. Please run `/jointocreate dashboard` again.'
+                '無法開啟設定介面，請重新執行 `/jointocreate dashboard`。'
             );
         }
 
@@ -300,10 +297,9 @@ async function handleConfigSubcommand(interaction, client) {
 
         collector.on('collect', async (buttonInteraction) => {
             try {
-                
                 if (!hasManageGuildPermission(buttonInteraction.member)) {
                     await buttonInteraction.reply({
-                        content: '❌ You need **Manage Server** permission to use these controls.',
+                        content: '❌ 你需要 **管理伺服器** 權限才能使用這些控制項。',
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -322,8 +318,8 @@ async function handleConfigSubcommand(interaction, client) {
                 }
             } catch (error) {
                 const userMessage = error instanceof TitanBotError
-                    ? error.userMessage || 'An error occurred.'
-                    : 'An error occurred while processing your request.';
+                    ? error.userMessage || '發生錯誤。'
+                    : '處理您的請求時發生錯誤。';
 
                 if (error instanceof TitanBotError) {
                     logger.debug(`Button interaction validation error: ${error.message}`, error.context || {});
@@ -348,7 +344,7 @@ async function handleConfigSubcommand(interaction, client) {
 
             message.edit({
                 components: [disabledRow],
-                embeds: [configEmbed.setFooter({ text: 'Configuration session expired. Run the command again to make changes.' })]
+                embeds: [configEmbed.setFooter({ text: '設定工作階段已過期。請重新執行指令以進行變更。' })]
             }).catch(() => {});
         });
 
@@ -359,7 +355,7 @@ async function handleConfigSubcommand(interaction, client) {
         throw new TitanBotError(
             `Config failed: ${error.message}`,
             ErrorTypes.DATABASE,
-            'Failed to load configuration.'
+            '無法載入設定。'
         );
     }
 }
@@ -367,16 +363,16 @@ async function handleConfigSubcommand(interaction, client) {
 async function handleNameTemplateModal(interaction, triggerChannel, currentConfig, client) {
     try {
         const TEMPLATE_OPTIONS = [
-            { label: "{username}'s Room (Default)", value: "{username}'s Room" },
+            { label: "{username}'s Room (預設)", value: "{username}'s Room" },
             { label: "{username}'s Channel",        value: "{username}'s Channel" },
-            { label: "{username}'s Lounge",         value: "{username}'s Lounge" },
-            { label: "{username}'s Space",          value: "{username}'s Space" },
+            { label: "{username}'s Lounge",          value: "{username}'s Lounge" },
+            { label: "{username}'s Space",           value: "{username}'s Space" },
             { label: "{displayName}'s Room",        value: "{displayName}'s Room" },
-            { label: "{username}'s VC",             value: "{username}'s VC" },
-            { label: "{username}'s Music Room",  value: "{username}'s Music Room" },
-            { label: "{username}'s Gaming Room", value: "{username}'s Gaming Room" },
-            { label: "{username}'s Chat Room",   value: "{username}'s Chat Room" },
-            { label: "{username}'s Private Room",   value: "{username}'s Private Room" },
+            { label: "{username}'s VC",              value: "{username}'s VC" },
+            { label: "{username}'s Music Room",     value: "{username}'s Music Room" },
+            { label: "{username}'s Gaming Room",    value: "{username}'s Gaming Room" },
+            { label: "{username}'s Chat Room",      value: "{username}'s Chat Room" },
+            { label: "{username}'s Private Room",    value: "{username}'s Private Room" },
         ];
 
         const currentTemplate = currentConfig.channelConfig?.nameTemplate
@@ -385,7 +381,7 @@ async function handleNameTemplateModal(interaction, triggerChannel, currentConfi
 
         const templateSelect = new StringSelectMenuBuilder()
             .setCustomId('template')
-            .setPlaceholder('Pick a name template...')
+            .setPlaceholder('選擇一個名稱範本...')
             .setOptions(
                 TEMPLATE_OPTIONS.map(o => ({
                     label: o.label,
@@ -395,12 +391,12 @@ async function handleNameTemplateModal(interaction, triggerChannel, currentConfi
             );
 
         const templateLabel = new LabelBuilder()
-            .setLabel('Channel name template')
+            .setLabel('頻道名稱範本')
             .setStringSelectMenuComponent(templateSelect);
 
         const modal = new ModalBuilder()
             .setCustomId(`jtc_name_modal_${triggerChannel.id}`)
-            .setTitle('Channel Name Template')
+            .setTitle('頻道名稱範本')
             .addLabelComponents(templateLabel);
 
         await interaction.showModal(modal);
@@ -412,7 +408,7 @@ async function handleNameTemplateModal(interaction, triggerChannel, currentConfi
 
         if (!hasManageGuildPermission(modalSubmission.member)) {
             await modalSubmission.reply({
-                content: '❌ You need **Manage Server** permission to modify these settings.',
+                content: '❌ 你需要 **管理伺服器** 權限才能修改這些設定。',
                 flags: MessageFlags.Ephemeral
             });
             return;
@@ -430,7 +426,7 @@ async function handleNameTemplateModal(interaction, triggerChannel, currentConfi
         });
 
         await modalSubmission.reply({
-            embeds: [successEmbed('Updated', `Channel name template changed to \`${newTemplate}\``)],
+            embeds: [successEmbed('已更新', `頻道名稱範本已更改為 \`${newTemplate}\``)],
             flags: MessageFlags.Ephemeral
         });
 
@@ -445,7 +441,7 @@ async function handleNameTemplateModal(interaction, triggerChannel, currentConfi
         throw new TitanBotError(
             `Modal error: ${error.message}`,
             ErrorTypes.UNKNOWN,
-            'An error occurred while updating the template.'
+            '更新範本時發生錯誤。'
         );
     }
 }
@@ -456,13 +452,13 @@ async function handleUserLimitModal(interaction, triggerChannel, currentConfig, 
 
         const modal = new ModalBuilder()
             .setCustomId(`jtc_limit_modal_${triggerChannel.id}`)
-            .setTitle('Configure User Limit')
+            .setTitle('設定人數上限')
             .addComponents(
                 new ActionRowBuilder().addComponents(
                     new TextInputBuilder()
                         .setCustomId('user_limit')
-                        .setLabel('Enter user limit (0-99, 0 = unlimited)')
-                        .setPlaceholder('Enter a number between 0 and 99')
+                        .setLabel('輸入人數上限 (0-99，0 = 無限制)')
+                        .setPlaceholder('請輸入 0 到 99 之間的數字')
                         .setStyle(TextInputStyle.Short)
                         .setRequired(true)
                         .setMinLength(1)
@@ -480,7 +476,7 @@ async function handleUserLimitModal(interaction, triggerChannel, currentConfig, 
 
         if (!hasManageGuildPermission(modalSubmission.member)) {
             await modalSubmission.reply({
-                content: '❌ You need **Manage Server** permission to modify these settings.',
+                content: '❌ 你需要 **管理伺服器** 權限才能修改這些設定。',
                 flags: MessageFlags.Ephemeral
             });
             return;
@@ -498,7 +494,7 @@ async function handleUserLimitModal(interaction, triggerChannel, currentConfig, 
         });
 
         await modalSubmission.reply({
-            embeds: [successEmbed('Updated', `User limit changed to ${parseInt(userInput) === 0 ? 'Unlimited' : parseInt(userInput) + ' users'}`)],
+            embeds: [successEmbed('已更新', `人數上限已更改為 ${parseInt(userInput) === 0 ? '無限制' : parseInt(userInput) + ' 人'}`)],
             flags: MessageFlags.Ephemeral
         });
 
@@ -513,7 +509,7 @@ async function handleUserLimitModal(interaction, triggerChannel, currentConfig, 
         throw new TitanBotError(
             `Modal error: ${error.message}`,
             ErrorTypes.UNKNOWN,
-            'An error occurred while updating the user limit.'
+            '更新人數上限時發生錯誤。'
         );
     }
 }
@@ -524,13 +520,13 @@ async function handleBitrateModal(interaction, triggerChannel, currentConfig, cl
 
         const modal = new ModalBuilder()
             .setCustomId(`jtc_bitrate_modal_${triggerChannel.id}`)
-            .setTitle('Configure Bitrate')
+            .setTitle('設定位元率')
             .addComponents(
                 new ActionRowBuilder().addComponents(
                     new TextInputBuilder()
                         .setCustomId('bitrate')
-                        .setLabel('Enter bitrate in kbps (8-384)')
-                        .setPlaceholder('Enter a number between 8 and 384')
+                        .setLabel('輸入位元率 (kbps，範圍 8-384)')
+                        .setPlaceholder('請輸入 8 到 384 之間的數字')
                         .setStyle(TextInputStyle.Short)
                         .setRequired(true)
                         .setMinLength(1)
@@ -548,7 +544,7 @@ async function handleBitrateModal(interaction, triggerChannel, currentConfig, cl
 
         if (!hasManageGuildPermission(modalSubmission.member)) {
             await modalSubmission.reply({
-                content: '❌ You need **Manage Server** permission to modify these settings.',
+                content: '❌ 你需要 **管理伺服器** 權限才能修改這些設定。',
                 flags: MessageFlags.Ephemeral
             });
             return;
@@ -566,7 +562,7 @@ async function handleBitrateModal(interaction, triggerChannel, currentConfig, cl
         });
 
         await modalSubmission.reply({
-            embeds: [successEmbed('Updated', `Bitrate changed to ${parseInt(userInput)} kbps`)],
+            embeds: [successEmbed('已更新', `位元率已更改為 ${parseInt(userInput)} kbps`)],
             flags: MessageFlags.Ephemeral
         });
 
@@ -581,7 +577,7 @@ async function handleBitrateModal(interaction, triggerChannel, currentConfig, cl
         throw new TitanBotError(
             `Modal error: ${error.message}`,
             ErrorTypes.UNKNOWN,
-            'An error occurred while updating the bitrate.'
+            '更新位元率時發生錯誤。'
         );
     }
 }
@@ -591,16 +587,16 @@ async function handleChannelDeletion(interaction, triggerChannel, currentConfig,
         const confirmRow = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 .setCustomId(`jtc_delete_confirm_${triggerChannel.id}`)
-                .setLabel('🗑️ Yes, Delete')
+                .setLabel('🗑️ 是，確定刪除')
                 .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
                 .setCustomId(`jtc_delete_cancel_${triggerChannel.id}`)
-                .setLabel('❌ Cancel')
+                .setLabel('❌ 取消')
                 .setStyle(ButtonStyle.Secondary)
         );
 
         await InteractionHelper.safeReply(interaction, {
-            embeds: [warningEmbed('Confirm Deletion', `Are you sure you want to remove **${triggerChannel.name}** from the Join to Create system?\n\nThis action cannot be undone.`)],
+            embeds: [warningEmbed('確認刪除', `你確定要從「加入即創建」系統中移除 **${triggerChannel.name}** 嗎？\n\n此動作無法復原。`)],
             components: [confirmRow],
             flags: MessageFlags.Ephemeral
         });
@@ -609,25 +605,23 @@ async function handleChannelDeletion(interaction, triggerChannel, currentConfig,
         const deleteCollector = message.createMessageComponentCollector({
             componentType: ComponentType.Button,
             filter: (i) => i.user.id === interaction.user.id && 
-                          (i.customId === `jtc_delete_confirm_${triggerChannel.id}` || 
-                           i.customId === `jtc_delete_cancel_${triggerChannel.id}`),
+                            (i.customId === `jtc_delete_confirm_${triggerChannel.id}` || 
+                             i.customId === `jtc_delete_cancel_${triggerChannel.id}`),
             time: 600_000,
             max: 1
         });
 
         deleteCollector.on('collect', async (buttonInteraction) => {
             try {
-                
                 if (!hasManageGuildPermission(buttonInteraction.member)) {
                     await buttonInteraction.reply({
-                        content: '❌ You need **Manage Server** permission to remove channels.',
+                        content: '❌ 你需要 **管理伺服器** 權限才能移除頻道。',
                         flags: MessageFlags.Ephemeral
                     });
                     return;
                 }
 
                 if (buttonInteraction.customId === `jtc_delete_confirm_${triggerChannel.id}`) {
-                    
                     await removeTriggerChannel(client, interaction.guild.id, triggerChannel.id);
 
                     await logConfigurationChange(client, interaction.guild.id, interaction.user.id, 'Removed Join to Create trigger', {
@@ -637,28 +631,27 @@ async function handleChannelDeletion(interaction, triggerChannel, currentConfig,
 
                     try {
                         if (triggerChannel.members.size === 0) {
-                            await triggerChannel.delete('Join to Create trigger removed by administrator');
+                            await triggerChannel.delete('管理員已移除「加入即創建」觸發頻道');
                         }
                     } catch (deleteError) {
                         logger.warn(`Could not delete channel ${triggerChannel.id}: ${deleteError.message}`);
-                        
                     }
 
                     await buttonInteraction.update({
-                        embeds: [successEmbed('Removed', `**${triggerChannel.name}** has been removed from the Join to Create system.`)],
+                        embeds: [successEmbed('已移除', `**${triggerChannel.name}** 已從「加入即創建」系統中移除。`)],
                         components: []
                     });
 
                 } else {
                     await buttonInteraction.update({
-                        embeds: [successEmbed('Cancelled', 'Channel removal has been cancelled.')],
+                        embeds: [successEmbed('已取消', '已取消移除頻道。')],
                         components: []
                     });
                 }
             } catch (collectError) {
                 logger.error('Error handling delete confirmation:', collectError);
                 await buttonInteraction.reply({
-                    content: '❌ An error occurred while processing your request.',
+                    content: '❌ 處理你的請求時發生錯誤。',
                     flags: MessageFlags.Ephemeral
                 }).catch(() => {});
             }
@@ -678,7 +671,7 @@ async function handleChannelDeletion(interaction, triggerChannel, currentConfig,
         throw new TitanBotError(
             `Deletion error: ${error.message}`,
             ErrorTypes.UNKNOWN,
-            'An error occurred while removing the channel.'
+            '移除頻道時發生錯誤。'
         );
     }
 }
