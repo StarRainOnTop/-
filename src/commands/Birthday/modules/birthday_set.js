@@ -15,8 +15,8 @@ export default {
 
         const embed = new EmbedBuilder()
             .setColor(0x00FF00)
-            .setTitle('Birthday Set!')
-            .setDescription(`Your birthday has been set to **${result.data.monthName} ${result.data.day}**!`);
+            .setTitle('生日設定成功！')
+            .setDescription(`你的生日已設定為 **${result.data.monthName} ${result.data.day}日**！`);
 
         await InteractionHelper.safeEditReply(interaction, {
             embeds: [embed]
