@@ -10,7 +10,7 @@ export default {
     data: new SlashCommandBuilder()
     .setName("lock")
     .setDescription(
-      "Locks the current channel (prevents @everyone from sending messages).",
+      "鎖定目前的頻道（防止 @everyone 發送訊息）。",
     )
 .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
   category: "moderation",
@@ -32,7 +32,7 @@ export default {
     try {
       const currentPermissions = channel.permissionsFor(everyoneRole);
       if (currentPermissions.has(PermissionFlagsBits.SendMessages) === false) {
-        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `${channel} is already locked.` });
+        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `${channel} 已經被鎖定了。` });
       }
 
       await channel.permissionOverwrites.edit(
@@ -45,12 +45,12 @@ export default {
         client,
         guild: interaction.guild,
         event: {
-          action: "Channel Locked",
+          action: "已鎖定頻道",
           target: channel.toString(),
           executor: `${interaction.user.tag} (${interaction.user.id})`,
           metadata: {
             channelId: channel.id,
-            category: channel.parent?.name || 'None',
+            category: channel.parent?.name || '無',
             moderatorId: interaction.user.id
           }
         }
@@ -59,14 +59,14 @@ export default {
       await InteractionHelper.safeEditReply(interaction, {
         embeds: [
           successEmbed(
-            `🔒 **Channel Locked**`,
-            `${channel} is now locked down. No one can speak here now.`,
+            `🔒 **頻道已鎖定**`,
+            `${channel} 目前已進行封鎖。現在大家無法在此發言。`,
           ),
         ],
       });
     } catch (error) {
       logger.error('Lock command error:', error);
-      await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'An unexpected error occurred while trying to lock the channel. Check my permissions (I need \'Manage Channels\').' });
+      await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: '嘗試鎖定頻道時發生未預期的錯誤。請檢查我的權限（我需要「管理頻道 (Manage Channels)」權限）。' });
     }
   }
 };
