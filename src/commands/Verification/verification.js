@@ -12,47 +12,47 @@ import verificationDashboard from './modules/verification_dashboard.js';
 export default {
     data: new SlashCommandBuilder()
         .setName("verification")
-        .setDescription("Manage the server verification system")
+        .setDescription("管理伺服器驗證系統")
         .addSubcommand(subcommand =>
             subcommand
                 .setName("setup")
-                .setDescription("Set up the verification system with one or multiple roles")
+                .setDescription("使用一個或多個身分組設定驗證系統")
                 .addChannelOption(option =>
                     option
                         .setName("verification_channel")
-                        .setDescription("Channel where verification messages will be sent")
+                        .setDescription("將發送驗證訊息的頻道")
                         .addChannelTypes(ChannelType.GuildText)
                         .setRequired(true)
                 )
                 .addRoleOption(option =>
                     option
                         .setName("verified_role")
-                        .setDescription("Primary role to give to verified users")
+                        .setDescription("要給予已驗證使用者的主要身分組")
                         .setRequired(true)
                 )
                 .addRoleOption(option =>
                     option
                         .setName("extra_role_1")
-                        .setDescription("Additional role to give upon verification (Optional)")
+                        .setDescription("驗證時給予的額外身分組（選填）")
                         .setRequired(false)
                 )
                 .addRoleOption(option =>
                     option
                         .setName("extra_role_2")
-                        .setDescription("Another additional role to give upon verification (Optional)")
+                        .setDescription("驗證時給予的另一個額外身分組（選填）")
                         .setRequired(false)
                 )
                 .addStringOption(option =>
                     option
                         .setName("message")
-                        .setDescription("Custom verification message")
+                        .setDescription("自訂驗證訊息")
                         .setMaxLength(2000)
                         .setRequired(false)
                 )
                 .addStringOption(option =>
                     option
                         .setName("button_text")
-                        .setDescription("Text for the verification button")
+                        .setDescription("驗證按鈕的文字")
                         .setMaxLength(80)
                         .setRequired(false)
                 )
@@ -60,18 +60,18 @@ export default {
         .addSubcommand(subcommand =>
             subcommand
                 .setName("remove")
-                .setDescription("Remove verification from a user")
+                .setDescription("從使用者身上移除驗證")
                 .addUserOption(option =>
                     option
                         .setName("user")
-                        .setDescription("User to remove verification from")
+                        .setDescription("要移除驗證的使用者")
                         .setRequired(true)
                 )
         )
         .addSubcommand(subcommand =>
             subcommand
                 .setName("dashboard")
-                .setDescription("Open the verification system configuration dashboard")
+                .setDescription("開啟驗證系統設定儀表板")
         ),
 
     async execute(interaction, config, client) {
@@ -83,7 +83,7 @@ export default {
                 throw createError(
                     'Missing ManageGuild permission for verification admin subcommand',
                     ErrorTypes.PERMISSION,
-                    'You need the **Manage Server** permission to use this verification subcommand.',
+                    '你需要 **管理伺服器** 權限才能使用此驗證子指令。',
                     { subcommand, requiredPermission: 'ManageGuild', userId: interaction.user.id }
                 );
             }
@@ -99,7 +99,7 @@ export default {
                     throw createError(
                         `Unknown subcommand: ${subcommand}`,
                         ErrorTypes.VALIDATION,
-                        "Please select a valid subcommand.",
+                        "請選擇一個有效的子指令。",
                         { subcommand }
                     );
             }
@@ -128,7 +128,7 @@ async function handleSetup(interaction, guild, client) {
         throw createError(
             'Bot member not found in guild cache',
             ErrorTypes.CONFIGURATION,
-            'I could not verify my permissions in this server. Please try again in a moment.',
+            '我無法在此伺服器中驗證我的權限。請稍後再試一次。',
             { guildId: guild.id }
         );
     }
@@ -146,7 +146,7 @@ async function handleSetup(interaction, guild, client) {
         throw createError(
             `Missing channel permissions: ${missingChannelPerms.join(', ')}`,
             ErrorTypes.PERMISSION,
-            'I need **View Channel**, **Send Messages**, and **Embed Links** in the verification channel.',
+            '我需要在驗證頻道中擁有 **檢視頻道**、**傳送訊息** 與 **嵌入連結** 權限。',
             { missingPermissions: missingChannelPerms, channel: verificationChannel.id }
         );
     }
@@ -155,7 +155,7 @@ async function handleSetup(interaction, guild, client) {
         throw createError(
             "Missing ManageRoles permission",
             ErrorTypes.PERMISSION,
-            "I need the 'Manage Roles' permission to give verified roles.",
+            "我需要「管理身分組」權限才能給予驗證身分組。",
             { missingPermission: "ManageRoles" }
         );
     }
@@ -166,7 +166,7 @@ async function handleSetup(interaction, guild, client) {
             throw createError(
                 'Invalid verified role selected',
                 ErrorTypes.VALIDATION,
-                `Please choose normal assignable roles (not @everyone or a managed role). Error with: ${r.name}`,
+                `請選擇一般可指派的身分組（不能是 @everyone 或受管理的的身分組）。錯誤的身分組：${r.name}`,
                 { roleId: r.id, managed: r.managed }
             );
         }
@@ -174,7 +174,7 @@ async function handleSetup(interaction, guild, client) {
             throw createError(
                 "Role hierarchy error",
                 ErrorTypes.PERMISSION,
-                `The role **${r.name}** must be below my highest role in the server role hierarchy.`,
+                `身分組 **${r.name}** 必須在伺服器身分組階層中低於我的最高身分組。`,
                 { rolePosition: r.position, botRolePosition: botRole.position }
             );
         }
@@ -187,7 +187,7 @@ async function handleSetup(interaction, guild, client) {
     await InteractionHelper.safeDefer(interaction);
 
     const verifyEmbed = createEmbed({
-        title: "Server Verification",
+        title: "伺服器驗證",
         description: message,
         color: getColor('success')
     });
@@ -220,11 +220,11 @@ async function handleSetup(interaction, guild, client) {
 
     await InteractionHelper.safeEditReply(interaction, {
         embeds: [successEmbed(
-            'Verification System Updated',
+            '驗證系統已更新',
             [
-                `Channel: ${verificationChannel}`,
-                `Assigned Roles: ${rolesToGive.map(r => r.toString()).join(', ')}`,
-                `Button Text: ${buttonText}`
+                `頻道：${verificationChannel}`,
+                `指定身分組：${rolesToGive.map(r => r.toString()).join(', ')}`,
+                `按鈕文字：${buttonText}`
             ].join('\n')
         )]
     });
@@ -240,7 +240,7 @@ async function handleRemove(interaction, guild, client) {
 
     if (result.status === 'not_verified') {
         return await InteractionHelper.safeReply(interaction, {
-            embeds: [infoEmbed('Not Verified', `${targetUser.tag} does not currently have the verified roles.`)],
+            embeds: [infoEmbed('未驗證', `${targetUser.tag} 目前沒有已驗證的身分組。`)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -252,6 +252,6 @@ async function handleRemove(interaction, guild, client) {
     });
 
     return await InteractionHelper.safeReply(interaction, {
-        embeds: [successEmbed('Verification Removed', `Verification removed from ${targetUser.tag}.`)]
+        embeds: [successEmbed('已移除驗證', `已從 ${targetUser.tag} 移除驗證。`)]
     });
 }
