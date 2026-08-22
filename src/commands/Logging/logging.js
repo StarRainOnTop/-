@@ -9,40 +9,40 @@ import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('logging')
-        .setDescription('Manage server logging — channels, filters, and event categories.')
+        .setDescription('管理伺服器日誌記錄 — 頻道、過濾器與事件分類。')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .setDMPermission(false)
         .addSubcommand((subcommand) =>
             subcommand
                 .setName('dashboard')
-                .setDescription('Open the logging dashboard — set channels, filters, and toggle categories.'),
+                .setDescription('開啟日誌記錄控制面板 — 設定頻道、過濾器並切換分類。'),
         )
         .addSubcommand((subcommand) =>
             subcommand
                 .setName('channel')
-                .setDescription('Quick-set a log channel without opening the dashboard.')
+                .setDescription('無需開啟控制面板，快速設定日誌頻道。')
                 .addStringOption((option) =>
                     option
                         .setName('destination')
-                        .setDescription('Which log destination to configure.')
+                        .setDescription('要設定的日誌目的地。')
                         .setRequired(true)
                         .addChoices(
-                            { name: 'Audit (moderation, messages, members…)', value: 'audit' },
-                            { name: 'Applications', value: 'applications' },
-                            { name: 'Reports', value: 'reports' },
+                            { name: '審核 (moderation、訊息、成員…)', value: 'audit' },
+                            { name: '申請 (Applications)', value: 'applications' },
+                            { name: '舉報 (Reports)', value: 'reports' },
                         ),
                 )
                 .addChannelOption((option) =>
                     option
                         .setName('channel')
-                        .setDescription('The text channel for logs.')
+                        .setDescription('用於接收日誌的文字頻道。')
                         .addChannelTypes(ChannelType.GuildText)
                         .setRequired(false),
                 )
                 .addBooleanOption((option) =>
                     option
                         .setName('disable')
-                        .setDescription('Set to True to clear this log channel.')
+                        .setDescription('設定為「是」(True) 以清除此日誌頻道。')
                         .setRequired(false),
                 ),
         ),
@@ -59,10 +59,10 @@ export default {
                 return await channel.execute(interaction, config, client);
             }
 
-            await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'This subcommand is not recognised.' });
+            await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: '無法識別此子指令。' });
         } catch (error) {
             logger.error('logging command error:', error);
-            await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An unexpected error occurred.' }).catch(() => {});
+            await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '發生了未預期的錯誤。' }).catch(() => {});
         }
     },
 };
