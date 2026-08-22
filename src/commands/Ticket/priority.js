@@ -10,18 +10,18 @@ import { updateTicketPriority } from '../../services/ticket.js';
 export default {
     data: new SlashCommandBuilder()
         .setName("priority")
-        .setDescription("Sets the priority level for the current support ticket.")
+        .setDescription("設定目前支援客服單的優先級別。")
         .addStringOption((option) =>
             option
                 .setName("level")
-                .setDescription("The priority level for the ticket.")
+                .setDescription("客服單的優先級別。")
                 .setRequired(true)
                 .addChoices(
-                    { name: "Urgent", value: "urgent" },
-                    { name: "High", value: "high" },
-                    { name: "Medium", value: "medium" },
-                    { name: "Low", value: "low" },
-                    { name: "None", value: "none" },
+                    { name: "緊急 (Urgent)", value: "urgent" },
+                    { name: "高 (High)", value: "high" },
+                    { name: "中 (Medium)", value: "medium" },
+                    { name: "低 (Low)", value: "low" },
+                    { name: "無 (None)", value: "none" },
                 ),
             )
         .setDMPermission(false),
@@ -35,11 +35,11 @@ export default {
 
         const permissionContext = await getTicketPermissionContext({ client, interaction });
         if (!permissionContext.ticketData) {
-            return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'This command can only be used in a valid ticket channel.' });
+            return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: '此指令只能在有效的客服單頻道中使用。' });
         }
 
         if (!permissionContext.canManageTicket) {
-            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the `Manage Channels` permission or the configured `Ticket Staff Role` to change ticket priority.' });
+            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: '您需要「管理頻道」權限或已設定的「客服人員身分組」才能變更客服單優先級。' });
         }
 
         const priorityLevel = interaction.options.getString("level");
@@ -48,13 +48,13 @@ export default {
         await InteractionHelper.safeEditReply(interaction, {
             embeds: [
                 successEmbed(
-                    "Priority Updated",
-                    `Ticket priority set to **${priorityLevel.toUpperCase()}**.`,
+                    "已更新優先級",
+                    `客服單優先級已設定為 **${priorityLevel.toUpperCase()}**。`,
                 ),
             ],
         });
 
-        logger.info('Ticket priority updated successfully', {
+        logger.info('客服單優先級更新成功', {
             userId: interaction.user.id,
             userTag: interaction.user.tag,
             channelId: interaction.channel.id,
