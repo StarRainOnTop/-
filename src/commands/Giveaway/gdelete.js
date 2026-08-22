@@ -10,12 +10,12 @@ export default {
     data: new SlashCommandBuilder()
         .setName("gdelete")
         .setDescription(
-            "Deletes a giveaway message and removes it from the database.",
+            "刪除抽獎訊息並將其從資料庫中移除。",
         )
         .addStringOption((option) =>
             option
                 .setName("messageid")
-                .setDescription("The message ID of the giveaway to delete.")
+                .setDescription("要刪除的抽獎訊息 ID。")
                 .setRequired(true),
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
@@ -25,7 +25,7 @@ export default {
             throw new TitanBotError(
                 'Giveaway command used outside guild',
                 ErrorTypes.VALIDATION,
-                'This command can only be used in a server.',
+                '此指令只能在伺服器中使用。',
                 { userId: interaction.user.id }
             );
         }
@@ -34,7 +34,7 @@ export default {
             throw new TitanBotError(
                 'User lacks ManageGuild permission',
                 ErrorTypes.PERMISSION,
-                "You need the 'Manage Server' permission to delete a giveaway.",
+                "你需要「管理伺服器」權限才能刪除抽獎活動。",
                 { userId: interaction.user.id, guildId: interaction.guildId }
             );
         }
@@ -47,7 +47,7 @@ export default {
             throw new TitanBotError(
                 'Invalid message ID format',
                 ErrorTypes.VALIDATION,
-                'Please provide a valid message ID.',
+                '請提供有效的訊息 ID。',
                 { providedId: messageId }
             );
         }
@@ -59,13 +59,13 @@ export default {
             throw new TitanBotError(
                 `Giveaway not found: ${messageId}`,
                 ErrorTypes.VALIDATION,
-                "No giveaway was found with that message ID.",
+                '找不到具有該訊息 ID 的抽獎活動。',
                 { messageId, guildId: interaction.guildId }
             );
         }
 
         let deletedMessage = false;
-        let channelName = "Unknown Channel";
+        let channelName = "未知頻道";
 
         const tryDeleteFromChannel = async (channel) => {
             if (!channel || !channel.isTextBased() || !channel.messages?.fetch) {
@@ -116,7 +116,7 @@ export default {
             throw new TitanBotError(
                 `Failed to delete giveaway from database: ${messageId}`,
                 ErrorTypes.UNKNOWN,
-                'The giveaway could not be removed from the database. Please try again.',
+                '無法從資料庫中移除此抽獎活動。請再試一次。',
                 { messageId, guildId: interaction.guildId }
             );
         }
@@ -128,24 +128,24 @@ export default {
             throw new TitanBotError(
                 `Giveaway still exists after deletion: ${messageId}`,
                 ErrorTypes.UNKNOWN,
-                'Deletion did not persist in the database. Please try again.',
+                '刪除後資料仍殘留在資料庫中。請再試一次。',
                 { messageId, guildId: interaction.guildId }
             );
         }
 
         const statusMsg = deletedMessage
-            ? `and the message was deleted from #${channelName}`
-            : `but the message was already deleted or the channel was inaccessible.`;
+            ? `且訊息已從 #${channelName} 中刪除`
+            : `但該訊息已被刪除，或無法存取該頻道。`;
 
         const winnerIds = Array.isArray(giveaway.winnerIds) ? giveaway.winnerIds : [];
         const hasWinners = winnerIds.length > 0;
         const wasEnded = giveaway.ended === true || giveaway.isEnded === true || hasWinners;
 
         const winnerStatusMsg = hasWinners
-            ? `This giveaway already had ${winnerIds.length} winner(s) selected.`
+            ? `此抽獎活動先前已選出 ${winnerIds.length} 位得獎者。`
             : wasEnded
-                ? 'This giveaway was ended with no valid winners.'
-                : 'No winner was picked before deletion.';
+              ? '此抽獎活動結束時沒有有效的得獎者。'
+              : '刪除前未挑選任何得獎者。';
 
         logger.info(`Giveaway deleted: ${messageId} in ${channelName}`);
 
@@ -155,17 +155,17 @@ export default {
                 guildId: interaction.guildId,
                 eventType: EVENT_TYPES.GIVEAWAY_DELETE,
                 data: {
-                    description: `Giveaway deleted: ${giveaway.prize}`,
+                    description: `已刪除抽獎活動：${giveaway.prize}`,
                     channelId: giveaway.channelId,
                     userId: interaction.user.id,
                     fields: [
                         {
-                            name: 'Prize',
-                            value: giveaway.prize || 'Unknown',
+                            name: '獎品',
+                            value: giveaway.prize || '未知',
                             inline: true
                         },
                         {
-                            name: 'Entries',
+                            name: '參與人數',
                             value: (giveaway.participants?.length || 0).toString(),
                             inline: true
                         }
@@ -179,8 +179,8 @@ export default {
         return InteractionHelper.safeReply(interaction, {
             embeds: [
                 successEmbed(
-                    "Giveaway Deleted",
-                    `Successfully deleted the giveaway for **${giveaway.prize}** ${statusMsg}. ${winnerStatusMsg}`,
+                    "抽獎活動已刪除",
+                    `成功刪除 **${giveaway.prize}** 的抽獎活動${statusMsg}。${winnerStatusMsg}`,
                 ),
             ],
             flags: MessageFlags.Ephemeral,
