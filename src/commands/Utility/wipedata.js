@@ -8,22 +8,22 @@ export default {
     slashOnly: true,
     data: new SlashCommandBuilder()
         .setName('wipedata')
-        .setDescription('Delete all your personal data from the bot (irreversible)'),
+        .setDescription('從機器人中刪除你所有的個人資料 (無法復原)'),
 
     async execute(interaction, guildConfig, client) {
         const warningMessage = 
-            `⚠️ **THIS ACTION IS IRREVERSIBLE!** ⚠️\n\n` +
-            `This will permanently delete **ALL** your data from this server including:\n` +
-            `• 💰 Economy balance (wallet & bank)\n` +
-            `• 📊 Levels and XP\n` +
-            `• 🎒 Inventory items\n` +
-            `• 🛍️ Shop purchases\n` +
-            `• 🎂 Birthday information\n` +
-            `• 🔢 Counter data\n` +
-            `• 📋 All other personal data\n\n` +
-            `**This cannot be undone. Are you absolutely sure?**`;
+            `⚠️ **此動作無法復原！** ⚠️\n\n` +
+            `這將永久刪除你在本伺服器中的**所有**資料，包含：\n` +
+            `• 💰 經濟餘額 (錢包與銀行)\n` +
+            `• 📊 等級與經驗值 (XP)\n` +
+            `• 🎒 背包物品\n` +
+            `• 🛍️ 商店購買紀錄\n` +
+            `• 🎂 生日資訊\n` +
+            `• 🔢 計數器資料\n` +
+            `• 📋 所有其他個人資料\n\n` +
+            `**這無法被取消。你確定要繼續嗎？**`;
 
-        const embed = warningEmbed('Wipe All Data', warningMessage);
+        const embed = warningEmbed('清除所有資料', warningMessage);
 
         const confirmButtons = getConfirmationButtons('wipedata');
 
