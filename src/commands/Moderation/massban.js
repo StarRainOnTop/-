@@ -9,22 +9,22 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
     data: new SlashCommandBuilder()
         .setName("massban")
-        .setDescription("Ban multiple users from the server at once")
+        .setDescription("一次封鎖伺服器中的多個使用者 (Mass Ban)")
         .addStringOption(option =>
             option
                 .setName("users")
-                .setDescription("User IDs or mentions to ban (separated by spaces or commas)")
+                .setDescription("要封鎖的使用者 ID 或標註（以空格或逗號分隔）")
                 .setRequired(true)
         )
         .addStringOption(option =>
             option.setName("reason")
-                .setDescription("Reason for the mass ban")
+                .setDescription("大量封鎖的原因")
                 .setRequired(false)
         )
         .addIntegerOption(option =>
             option
                 .setName("delete_days")
-                .setDescription("Number of days of messages to delete (0-7)")
+                .setDescription("要刪除幾天內的訊息（0-7）")
                 .setMinValue(0)
                 .setMaxValue(7)
                 .setRequired(false)
@@ -45,7 +45,7 @@ export default {
         }
 
         const usersInput = interaction.options.getString("users");
-        const reason = interaction.options.getString("reason") || "Mass ban - No reason provided";
+        const reason = interaction.options.getString("reason") || "大量封鎖 - 未提供原因";
         const deleteDays = interaction.options.getInteger("delete_days") || 0;
 
         try {
@@ -56,15 +56,15 @@ export default {
 .slice(0, 20);
 
             if (userIds.length === 0) {
-                return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Please provide valid user IDs or mentions. Maximum 20 users at once.' });
+                return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: '請提供有效的使用者 ID 或標註。一次最多 20 位使用者。' });
             }
 
             if (userIds.includes(interaction.user.id)) {
-                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You cannot include yourself in a mass ban.' });
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '你不能在大量封鎖中包含你自己。' });
             }
 
             if (userIds.includes(client.user.id)) {
-                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You cannot include the bot in a mass ban.' });
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '你不能在大量封鎖中包含機器人。' });
             }
 
             const results = {
@@ -78,7 +78,7 @@ export default {
                     const user = await client.users.fetch(userId).catch(() => null);
                     
                     if (!user) {
-                        results.failed.push({ userId, reason: "User not found" });
+                        results.failed.push({ userId, reason: "找不到使用者" });
                         continue;
                     }
 
@@ -123,7 +123,7 @@ export default {
                             action: "Member Banned",
                             target: `${user.tag} (${user.id})`,
                             executor: `${interaction.user.tag} (${interaction.user.id})`,
-                            reason: `${reason} (Mass Ban)`,
+                            reason: `${reason} (大量封鎖)`,
                             metadata: {
                                 userId: user.id,
                                 moderatorId: interaction.user.id,
@@ -137,18 +137,18 @@ export default {
                     logger.error(`Failed to ban user ${userId}:`, error);
                     const reason = error instanceof TitanBotError
                         ? (error.userMessage || error.message)
-                        : (error.message || "Unknown error");
+                        : (error.message || "未知錯誤");
                     results.failed.push({ 
                         userId, 
-                        reason,
+                        reason, 
                     });
                 }
             }
 
-            let description = `**Mass Ban Results:**\n\n`;
+            let description = `**大量封鎖結果：**\n\n`;
             
             if (results.successful.length > 0) {
-                description += `✅ **Successfully Banned (${results.successful.length}):**\n`;
+                description += `✅ **成功封鎖 (${results.successful.length})：**\n`;
                 results.successful.forEach(result => {
                     description += `• ${result.user} (${result.userId})\n`;
                 });
@@ -156,7 +156,7 @@ export default {
             }
 
             if (results.skipped.length > 0) {
-                description += `⚠️ **Skipped (${results.skipped.length}):**\n`;
+                description += `⚠️ **已略過 (${results.skipped.length})：**\n`;
                 results.skipped.forEach(result => {
                     description += `• ${result.user} - ${result.reason}\n`;
                 });
@@ -164,7 +164,7 @@ export default {
             }
 
             if (results.failed.length > 0) {
-                description += `❌ **Failed (${results.failed.length}):**\n`;
+                description += `❌ **失敗 (${results.failed.length})：**\n`;
                 results.failed.forEach(result => {
                     description += `• ${result.userId} - ${result.reason}\n`;
                 });
@@ -175,7 +175,7 @@ export default {
             return await InteractionHelper.safeEditReply(interaction, {
                 embeds: [
                     embed(
-                        `🔨 Mass Ban Completed`,
+                        `🔨 大量封鎖已完成`,
                         description
                     )
                 ]
@@ -183,7 +183,7 @@ export default {
 
         } catch (error) {
             logger.error("Error in massban command:", error);
-            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while processing the mass ban. Please try again later.' });
+            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '處理大量封鎖時發生錯誤。請稍後再試。' });
         }
     }
 };
