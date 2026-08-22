@@ -7,27 +7,27 @@ import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('cases')
-        .setDescription('View moderation cases and audit logs')
+        .setDescription('檢視管理案件與審核記錄')
         .setDefaultMemberPermissions(PermissionFlagsBits.ViewAuditLog)
         .setDMPermission(false)
         .addStringOption(option =>
             option.setName('filter')
-                .setDescription('Filter cases by type or user')
+                .setDescription('依類型或使用者篩選案件')
                 .addChoices(
-                    { name: 'All Cases', value: 'all' },
-                    { name: 'Bans', value: 'Member Banned' },
-                    { name: 'Kicks', value: 'Member Kicked' },
-                    { name: 'Timeouts', value: 'Member Timed Out' },
-                    { name: 'Warnings', value: 'User Warned' }
+                    { name: '所有案件', value: 'all' },
+                    { name: '封鎖 (Bans)', value: 'Member Banned' },
+                    { name: '踢出 (Kicks)', value: 'Member Kicked' },
+                    { name: '禁言 (Timeouts)', value: 'Member Timed Out' },
+                    { name: '警告 (Warnings)', value: 'User Warned' }
                 )
         )
         .addUserOption(option =>
             option.setName('user')
-                .setDescription('Filter cases by specific user')
+                .setDescription('依特定使用者篩選案件')
         )
         .addIntegerOption(option =>
             option.setName('limit')
-                .setDescription('Number of cases to show (default: 10)')
+                .setDescription('顯示的案件數量（預設：10）')
                 .setMinValue(1)
                 .setMaxValue(50)
         ),
@@ -60,8 +60,8 @@ export default {
 
             if (cases.length === 0) {
                 throw new Error(targetUser 
-                    ? `No moderation cases found for ${targetUser.tag}`
-                    : `No ${filterType === 'all' ? '' : filterType} cases found in this server.`
+                    ? `找不到關於 ${targetUser.tag} 的管理案件`
+                    : `本伺服器中找不到任何${filterType === 'all' ? '' : `「${filterType}」`}類型的案件。`
                 );
             }
 
@@ -75,8 +75,8 @@ export default {
                 const pageCases = cases.slice(startIndex, endIndex);
 
                 const embed = createEmbed({
-                    title: 'Moderation Cases',
-                    description: `Showing moderation cases for **${interaction.guild.name}**\n\n**Page ${page} of ${totalPages}**`
+                    title: '管理案件記錄',
+                    description: `正在顯示 **${interaction.guild.name}** 的管理案件\n\n**第 ${page} 頁，共 ${totalPages} 頁**`
                 });
 
                 pageCases.forEach(case_ => {
@@ -84,14 +84,14 @@ export default {
                     const time = new Date(case_.createdAt).toLocaleTimeString();
                     
                     embed.addFields({
-                        name: `Case #${case_.caseId} - ${case_.action}`,
-                        value: `**Target:** ${case_.target}\n**Moderator:** ${case_.executor}\n**Date:** ${date} at ${time}\n**Reason:** ${case_.reason || 'No reason provided'}`,
+                        name: `案件 #${case_.caseId} - ${case_.action}`,
+                        value: `**目標對象：** ${case_.target}\n**執行人員：** ${case_.executor}\n**時間：** ${date} ${time}\n**原因：** ${case_.reason || '未提供原因'}`,
                         inline: false
                     });
                 });
 
                 embed.setFooter({
-                    text: `Total cases: ${cases.length} | Filter: ${filterType}${targetUser ?` | User: ${targetUser.tag}`: ''}`
+                    text: `總案件數：${cases.length} | 篩選：${filterType}${targetUser ? ` | 使用者：${targetUser.tag}` : ''}`
                 });
 
                 return embed;
@@ -102,19 +102,19 @@ export default {
                 
                 const prevButton = new ButtonBuilder()
                     .setCustomId('prev_page')
-                    .setLabel('⬅️ Previous')
+                    .setLabel('⬅️ 上一頁')
                     .setStyle(ButtonStyle.Secondary)
                     .setDisabled(page === 1);
 
                 const pageInfoButton = new ButtonBuilder()
                     .setCustomId('page_info')
-                    .setLabel(`Page ${page}/${totalPages}`)
+                    .setLabel(`第 ${page}/${totalPages} 頁`)
                     .setStyle(ButtonStyle.Primary)
                     .setDisabled(true);
 
                 const nextButton = new ButtonBuilder()
                     .setCustomId('next_page')
-                    .setLabel('Next ➡️')
+                    .setLabel('下一頁 ➡️')
                     .setStyle(ButtonStyle.Secondary)
                     .setDisabled(page === totalPages);
 
@@ -129,7 +129,7 @@ export default {
 
             const collector = message.createMessageComponentCollector({
                 componentType: ComponentType.Button,
-time: 120000
+                time: 120000
             });
 
             collector.on('collect', async (buttonInteraction) => {
@@ -137,7 +137,7 @@ time: 120000
 
                 if (buttonInteraction.user.id !== interaction.user.id) {
                     await buttonInteraction.followUp({
-                        content: 'You cannot use these buttons. Run `/cases` to get your own case view.',
+                        content: '你無法使用這些按鈕。請自行輸入 `/cases` 指令來查看你專屬的案件檢視畫面。',
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -171,7 +171,7 @@ time: 120000
 
         } catch (error) {
             logger.error('Error in cases command:', error);
-            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while retrieving moderation cases. Please try again later.' });
+            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '檢索管理案件時發生錯誤，請稍後再試。' });
         }
     }
 };
