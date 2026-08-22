@@ -28,17 +28,17 @@ const WIZARD_BUTTON_ID = 'config_wizard';
 const activeWizardSessions = new Set();
 
 const DM_DISABLED_HELP = [
-    '1. Right-click this server\'s name (mobile: tap the server name at the top).',
-    '2. Open **Privacy Settings**.',
-    '3. Turn on **Allow direct messages from server members**.',
-    '4. Click **Start Setup Wizard** again.',
+    '1. 請右鍵點擊此伺服器的名稱（手機版：點擊頂部的伺服器名稱）。',
+    '2. 開啟 **隱私設定**。',
+    '3. 開啟 **允許來自伺服器成員的私人訊息**。',
+    '4. 再次點擊 **開始設定精靈**。',
 ].join('\n');
 
 async function notifyWizardStarted(buttonInteraction) {
     await buttonInteraction.followUp({
         embeds: [infoEmbed(
-            'Setup Wizard Started',
-            'Check your DMs — I sent you the first setup question there.\n\nAnswer each question in that DM. Type `skip` to keep the current value.',
+            '已開始設定精靈',
+          '請檢查你的私人訊息（DM）——我已經將第一個設定問題發送至您的私訊中。\n\n請在該私訊中回答每一個問題。輸入 `skip` 以保留目前的值。',
         )],
         flags: MessageFlags.Ephemeral,
     }).catch(() => {});
@@ -47,13 +47,13 @@ async function notifyWizardStarted(buttonInteraction) {
 async function notifyWizardDmBlocked(buttonInteraction) {
     await replyUserError(buttonInteraction, {
         type: ErrorTypes.USER_INPUT,
-        message: `I couldn't send you a DM. Enable DMs from this server, then try again.\n\n${DM_DISABLED_HELP}`,
+        message: `無法向你傳送私人訊息。請允許接收來自此伺服器的私訊，然後再試一次。\n\n${DM_DISABLED_HELP}`,
     }).catch(() => {});
 }
 
 function formatChannelMention(guild, channelId) {
     if (!channelId) {
-        return '`Not set`';
+        return '`未設定`';
     }
     const channel = guild.channels.cache.get(channelId);
     return channel ? `<#${channelId}>` : `#${channelId}`;
@@ -61,7 +61,7 @@ function formatChannelMention(guild, channelId) {
 
 function formatRoleMention(guild, roleId) {
     if (!roleId) {
-        return '`Not set`';
+        return '`未設定`';
     }
     const role = guild.roles.cache.get(roleId);
     return role ? `<@&${roleId}>` : `@${roleId}`;
@@ -70,10 +70,10 @@ function formatRoleMention(guild, roleId) {
 function getBotPresenceText() {
     const activity = botConfig.presence?.activities?.[0];
     if (!activity?.name) {
-        return '`Not configured`';
+        return '`未設定`';
     }
 
-    const typeLabels = ['Playing', 'Streaming', 'Listening to', 'Watching', '', 'Competing in'];
+    const typeLabels = ['正在遊玩', '正在實況', '正在聆聽', '正在觀看', '', '正在競賽'];
     const typeLabel = typeLabels[activity.type];
     if (!typeLabel) {
         return activity.name;
@@ -85,8 +85,8 @@ function getBotPresenceText() {
 function getThemeColorLines() {
     const colors = botConfig.embeds.colors;
     return [
-        `🎨 Primary \`${colors.primary}\` · Success \`${colors.success}\``,
-        `⚠️ Warning \`${colors.warning}\` · Error \`${colors.error}\``,
+        `🎨 主要 \`${colors.primary}\` · 成功 \`${colors.success}\``,
+        `⚠️ 警告 \`${colors.warning}\` · 錯誤 \`${colors.error}\``,
     ].join('\n');
 }
 
@@ -94,49 +94,49 @@ function buildDashboardEmbed(config, guild) {
     const setupDone = config.setupWizardCompleted;
 
     return createEmbed({
-        title: '⚙️ Server Configuration',
-        description: `Core settings for **${guild.name}**. Pick an option below or run the setup wizard.`,
+        title: '⚙️ 伺服器設定',
+        description: `**${guild.name}** 的核心設定。請在下方選擇一個選項或執行設定精靈。`,
         color: 'info',
         fields: [
             {
-                name: '⌨️ Server Prefix',
+                name: '⌨️ 伺服器前綴',
                 value: `\`${config.prefix || getCommandPrefix()}\``,
                 inline: true,
             },
             {
-                name: '🛡️ Moderator Role',
+                name: '🛡️ 管理員身分組',
                 value: formatRoleMention(guild, config.modRole),
                 inline: true,
             },
             {
-                name: '📋 Log Channel',
+                name: '📋 記錄頻道',
                 value: formatChannelMention(guild, config.logging?.channels?.audit),
                 inline: true,
             },
             {
-                name: '💚 Bot Status',
+                name: '💚 機器人狀態',
                 value: getBotPresenceText(),
                 inline: false,
             },
             {
-                name: '🎨 Embed Theme',
-                value: `${getThemeColorLines()}\n-# Colors are set in bot config and apply globally.`,
+                name: '🎨 嵌入訊息佈景主題',
+                value: `${getThemeColorLines()}\n-# 顏色是在機器人設定中設定的，並會套用於全域。`,
                 inline: false,
             },
             {
-                name: '⚡ Command Access',
-                value: 'Use `/commands dashboard` to enable or disable commands and subcommands.',
+                name: '⚡ 指令存取權限',
+                value: '使用 \`/commands dashboard\` 來啟用或停用指令與子指令。',
                 inline: false,
             },
             {
-                name: `${setupDone ? '✅' : '📝'} Setup`,
+                name: `${setupDone ? '✅' : '📝'} 設定狀態`,
                 value: setupDone
-                    ? 'Setup wizard completed — re-run anytime to update settings.'
-                    : 'Run the setup wizard to configure your server quickly.',
+                    ? '設定精靈已完成——隨時可重新執行以更新設定。'
+                    : '執行設定精靈以快速設定你的伺服器。',
                 inline: false,
             },
         ],
-        footer: 'Dashboard closes after 10 minutes of inactivity',
+        footer: '儀表板會在閒置 10 分鐘後關閉',
     });
 }
 
@@ -144,21 +144,21 @@ function buildSettingsSelect(guildId) {
     return new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
             .setCustomId(`${DASHBOARD_CUSTOM_ID}:${guildId}`)
-            .setPlaceholder('⚙️ Select a setting to edit...')
+            .setPlaceholder('⚙️ 選擇要編輯的設定...')
             .addOptions(
                 new StringSelectMenuOptionBuilder()
-                    .setLabel('Server Prefix')
-                    .setDescription('Change the text command prefix')
+                    .setLabel('伺服器前綴')
+                    .setDescription('變更文字指令前綴')
                     .setValue('prefix')
                     .setEmoji('⌨️'),
                 new StringSelectMenuOptionBuilder()
-                    .setLabel('Moderator Role')
-                    .setDescription('Role used for moderation commands')
+                    .setLabel('管理員身分組')
+                    .setDescription('用於管理指令的身分組')
                     .setValue('modRole')
                     .setEmoji('🛡️'),
                 new StringSelectMenuOptionBuilder()
-                    .setLabel('Log Channel')
-                    .setDescription('Channel for system log messages')
+                    .setLabel('記錄頻道')
+                    .setDescription('接收系統記錄訊息的頻道')
                     .setValue('logChannelId')
                     .setEmoji('📋'),
             ),
@@ -169,7 +169,7 @@ function buildButtonRow(config, guildId) {
     return new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`${WIZARD_BUTTON_ID}:${guildId}`)
-            .setLabel(config.setupWizardCompleted ? 'Re-run Setup Wizard' : 'Start Setup Wizard')
+            .setLabel(config.setupWizardCompleted ? '重新執行設定精靈' : '開始設定精靈')
             .setEmoji('📝')
             .setStyle(config.setupWizardCompleted ? ButtonStyle.Secondary : ButtonStyle.Success),
     );
@@ -193,7 +193,7 @@ function extractId(value) {
 async function askQuestion(dmChannel, userId, prompt, stepNumber, totalSteps) {
     await dmChannel.send({
         embeds: [createEmbed({
-            title: `Setup Question ${stepNumber}/${totalSteps}`,
+            title: `設定問題 ${stepNumber}/${totalSteps}`,
             description: prompt,
             color: 'primary',
         })],
@@ -207,7 +207,7 @@ async function askQuestion(dmChannel, userId, prompt, stepNumber, totalSteps) {
 
     if (!collected || !collected.size) {
         await dmChannel.send({
-            embeds: [buildUserErrorEmbed(ErrorTypes.RATE_LIMIT, 'You did not answer in time. Run the setup wizard again when ready.')],
+            embeds: [buildUserErrorEmbed(ErrorTypes.RATE_LIMIT, '你未能在時限內回答。準備好時請再次執行設定精靈。')],
         });
         return null;
     }
@@ -215,7 +215,7 @@ async function askQuestion(dmChannel, userId, prompt, stepNumber, totalSteps) {
     const answer = collected.first().content.trim();
     if (answer.toLowerCase() === 'cancel') {
         await dmChannel.send({
-            embeds: [infoEmbed('Setup Cancelled', 'Setup wizard stopped. Your saved answers are still applied.')],
+            embeds: [infoEmbed('已取消設定', '設定精靈已停止。你先前儲存的答案仍然有效。')],
         });
         return { cancelled: true };
     }
@@ -225,32 +225,32 @@ async function askQuestion(dmChannel, userId, prompt, stepNumber, totalSteps) {
 
 function formatSavedAck(key, value, guild) {
     if (key === 'prefix') {
-        return `Server prefix saved as \`${value}\`.`;
+        return `伺服器前綴已儲存為 \`${value}\`。`;
     }
 
     if (key === 'logChannelId') {
         if (value === null) {
-            return 'Log channel cleared.';
+            return '記錄頻道已清除。';
         }
         const channel = guild.channels.cache.get(value);
-        return `Log channel saved as ${channel ?? `<#${value}>`}.`;
+        return `記錄頻道已儲存為 ${channel ?? `<#${value}>` }。`;
     }
 
     if (key === 'modRole') {
         if (value === null) {
-            return 'Moderator role cleared.';
+            return '管理員身分組已清除。';
         }
         const role = guild.roles.cache.get(value);
-        return `Moderator role saved as ${role ?? `<@&${value}>`}.`;
+        return `管理員身分組已儲存為 ${role ?? `<@&${value}>` }。`;
     }
 
-    return 'Setting saved.';
+    return '設定已儲存。';
 }
 
 async function validateGuildChannelId(guild, channelId) {
     const channel = guild.channels.cache.get(channelId) ?? await guild.channels.fetch(channelId).catch(() => null);
     if (!channel || !channel.isTextBased()) {
-        throw new Error('That channel was not found in this server or is not a text channel.');
+        throw new Error('在此伺服器中找不到該頻道，或者該頻道不是文字頻道。');
     }
     return channel.id;
 }
@@ -258,7 +258,7 @@ async function validateGuildChannelId(guild, channelId) {
 async function validateGuildRoleId(guild, roleId) {
     const role = guild.roles.cache.get(roleId) ?? await guild.roles.fetch(roleId).catch(() => null);
     if (!role) {
-        throw new Error('That role was not found in this server.');
+        throw new Error('在此伺服器中找不到該身分組。');
     }
     return role.id;
 }
@@ -274,7 +274,7 @@ async function runSetupWizard(buttonInteraction, config, guild, client, rootInte
 
     if (activeWizardSessions.has(user.id)) {
         await buttonInteraction.followUp({
-            embeds: [warningEmbed('Setup Already Running', 'You already have a setup wizard open in your DMs. Reply there to continue, or type `cancel` to stop it.')],
+            embeds: [warningEmbed('設定已經在進行中', '你的私人訊息中已經有一個開啟的設定精靈。請在該處回覆以繼續，或輸入 `cancel` 來停止它。')],
             flags: MessageFlags.Ephemeral,
         }).catch(() => {});
         return;
@@ -299,40 +299,40 @@ async function runSetupWizard(buttonInteraction, config, guild, client, rootInte
     const prompts = [
         {
             key: 'prefix',
-            skipMessage: 'Keeping the current server prefix.',
-            question: 'What command prefix should this server use?\nCurrent: `' + (config.prefix || getCommandPrefix()) + '`\nReply `skip` to keep it, or `cancel` to stop.',
+            skipMessage: '保持目前的伺服器前綴。',
+            question: '此伺服器應使用什麼指令前綴？\n目前：`' + (config.prefix || getCommandPrefix()) + '`\n回覆 `skip` 以保留，或回覆 `cancel` 以停止。',
             parse: async (answer) => {
                 const normalized = answer.trim();
                 if (normalized.toLowerCase() === 'skip') return undefined;
                 if (/\s/.test(normalized) || normalized.length < 1 || normalized.length > 10) {
-                    throw new Error('Prefix must be 1-10 characters with no spaces.');
+                    throw new Error('前綴長度必須為 1-10 個字元且不能包含空格。');
                 }
                 return normalized;
             },
         },
         {
             key: 'logChannelId',
-            skipMessage: 'Keeping the current log channel.',
-            question: 'Which channel should receive bot logs?\nSend a channel mention, channel ID, `none` to clear, `skip` to keep the current value, or `cancel` to stop.',
+            skipMessage: '保持目前的記錄頻道。',
+            question: '哪一個頻道應該接收機器人記錄？\n請發送頻道提及、頻道 ID、輸入 `none` 以清除、輸入 `skip` 以保留目前的值，或輸入 `cancel` 以停止。',
             parse: async (answer) => {
                 const normalized = answer.trim();
                 if (normalized.toLowerCase() === 'skip') return undefined;
                 if (normalized.toLowerCase() === 'none') return null;
                 const id = extractId(normalized);
-                if (!id) throw new Error('Provide a valid channel mention or ID from this server.');
+                if (!id) throw new Error('請提供此伺服器中有效的頻道提及或 ID。');
                 return validateGuildChannelId(guild, id);
             },
         },
         {
             key: 'modRole',
-            skipMessage: 'Keeping the current moderator role.',
-            question: 'What role should moderators have?\nSend a role mention, role ID, `none` to clear, `skip` to keep the current value, or `cancel` to stop.',
+            skipMessage: '保持目前的管理員身分組。',
+            question: '管理員應該擁有什麼身分組？\n請發送身分組提及、身分組 ID、輸入 `none` 以清除、輸入 `skip` 以保留目前的值，或輸入 `cancel` 以停止。',
             parse: async (answer) => {
                 const normalized = answer.trim();
                 if (normalized.toLowerCase() === 'skip') return undefined;
                 if (normalized.toLowerCase() === 'none') return null;
                 const id = extractId(normalized);
-                if (!id) throw new Error('Provide a valid role mention or ID from this server.');
+                if (!id) throw new Error('請提供此伺服器中有效的身分組提及或 ID。');
                 return validateGuildRoleId(guild, id);
             },
         },
@@ -346,8 +346,8 @@ async function runSetupWizard(buttonInteraction, config, guild, client, rootInte
         try {
             await dmChannel.send({
                 embeds: [createEmbed({
-                    title: '📝 Setup Wizard',
-                    description: 'Answer each question in this DM.\n\n• Type `skip` to keep the current value\n• Type `cancel` to stop the wizard',
+                    title: '📝 設定精靈',
+                    description: '請在此私人訊息中回答每個問題。\n\n• 輸入 `skip` 以保留目前的值\n• 輸入 `cancel` 以停止精靈',
                     color: 'info',
                 })],
             });
@@ -389,13 +389,13 @@ async function runSetupWizard(buttonInteraction, config, guild, client, rootInte
 
                     if (value === undefined) {
                         await dmChannel.send({
-                            embeds: [infoEmbed('Skipped', prompt.skipMessage)],
+                            embeds: [infoEmbed('已略過', prompt.skipMessage)],
                         });
                     } else {
                         await ConfigService.updateSetting(client, guild.id, prompt.key, value, user.id);
                         changes[prompt.key] = value;
                         await dmChannel.send({
-                            embeds: [successEmbed('Saved', formatSavedAck(prompt.key, value, guild))],
+                            embeds: [successEmbed('已儲存', formatSavedAck(prompt.key, value, guild))],
                         });
 
                         try {
@@ -410,7 +410,7 @@ async function runSetupWizard(buttonInteraction, config, guild, client, rootInte
                 } catch (error) {
                     errors.push(`• ${prompt.key}: ${error.message}`);
                     await dmChannel.send({
-                        embeds: [buildUserErrorEmbed(ErrorTypes.VALIDATION, `${error.message}\n\nPlease reply again with a valid answer, \`skip\`, or \`cancel\`.`)],
+                        embeds: [buildUserErrorEmbed(ErrorTypes.VALIDATION, `${error.message}\n\n請再次回覆一個有效的答案、\`skip\` 或 \`cancel\`.`)],
                     });
                 }
             }
@@ -429,16 +429,16 @@ async function runSetupWizard(buttonInteraction, config, guild, client, rootInte
         }
 
         const summaryTitle = wizardCancelled
-            ? (Object.keys(changes).length > 0 ? 'Setup Stopped' : 'Setup Cancelled')
-            : (errors.length > 0 ? 'Setup Complete' : 'Setup Complete');
+            ? (Object.keys(changes).length > 0 ? '設定已停止' : '設定已取消')
+            : (errors.length > 0 ? '設定完成' : '設定完成');
 
         const summaryBody = wizardCancelled
             ? (Object.keys(changes).length > 0
-                ? `Setup stopped early. Saved **${Object.keys(changes).length}** setting(s) before stopping.`
-                : 'Setup wizard stopped before any changes were saved.')
+                ? `設定提早結束。在停止前已儲存 **${Object.keys(changes).length}** 個設定。`
+                : '設定精靈在儲存任何變更之前已停止。')
             : (Object.keys(changes).length > 0
-                ? `Updated **${Object.keys(changes).length}** setting(s).${errors.length > 0 ? ' Some answers needed retries.' : ''}`
-                : 'No changes were applied.');
+                ? `已更新 **${Object.keys(changes).length}** 個設定。${errors.length > 0 ? ' 部分答案需要重新嘗試。' : ''}`
+                : '沒有套用任何變更。');
 
         const summaryEmbed = createEmbed({
             title: wizardCancelled ? `⚠️ ${summaryTitle}` : `✅ ${summaryTitle}`,
@@ -448,7 +448,7 @@ async function runSetupWizard(buttonInteraction, config, guild, client, rootInte
 
         if (errors.length > 0) {
             const uniqueErrors = [...new Set(errors)];
-            summaryEmbed.addFields({ name: 'Issues', value: uniqueErrors.join('\n').slice(0, 1024) });
+            summaryEmbed.addFields({ name: '問題', value: uniqueErrors.join('\n').slice(0, 1024) });
         }
 
         await dmChannel.send({ embeds: [summaryEmbed] });
@@ -470,19 +470,19 @@ async function showSettingModal(selectInteraction, guildId, setting) {
     if (setting === 'logChannelId') {
         const modal = new ModalBuilder()
             .setCustomId(modalCustomId)
-            .setTitle('📋 Update Log Channel');
+            .setTitle('📋 更新記錄頻道');
 
         const channelSelect = new ChannelSelectMenuBuilder()
             .setCustomId('log_channel')
-            .setPlaceholder('Select a text channel...')
+            .setPlaceholder('選擇一個文字頻道...')
             .setMinValues(1)
             .setMaxValues(1)
             .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
             .setRequired(true);
 
         const channelLabel = new LabelBuilder()
-            .setLabel('Log Channel')
-            .setDescription('Channel where system log messages will be sent')
+            .setLabel('記錄頻道')
+            .setDescription('將發送系統記錄訊息的頻道')
             .setChannelSelectMenuComponent(channelSelect);
 
         modal.addLabelComponents(channelLabel);
@@ -493,18 +493,18 @@ async function showSettingModal(selectInteraction, guildId, setting) {
     if (setting === 'modRole') {
         const modal = new ModalBuilder()
             .setCustomId(modalCustomId)
-            .setTitle('🛡️ Update Moderator Role');
+            .setTitle('🛡️ 更新管理員身分組');
 
         const roleSelect = new RoleSelectMenuBuilder()
             .setCustomId('mod_role')
-            .setPlaceholder('Select a moderator role...')
+            .setPlaceholder('選擇一個管理員身分組...')
             .setMinValues(1)
             .setMaxValues(1)
             .setRequired(true);
 
         const roleLabel = new LabelBuilder()
-            .setLabel('Moderator Role')
-            .setDescription('Role used for moderation commands')
+            .setLabel('管理員身分組')
+            .setDescription('用於管理指令的身分組')
             .setRoleSelectMenuComponent(roleSelect);
 
         modal.addLabelComponents(roleLabel);
@@ -514,11 +514,11 @@ async function showSettingModal(selectInteraction, guildId, setting) {
 
     const modal = new ModalBuilder()
         .setCustomId(modalCustomId)
-        .setTitle('Update Server Prefix');
+        .setTitle('更新伺服器前綴');
 
     const textInput = new TextInputBuilder()
         .setCustomId('value')
-        .setLabel('New prefix (1-10 characters, no spaces)')
+        .setLabel('新前綴（1-10 個字元，無空格）')
         .setStyle(TextInputStyle.Short)
         .setRequired(true)
         .setMinLength(1)
@@ -532,7 +532,7 @@ function resolveSettingModalValue(setting, submitted) {
     if (setting === 'logChannelId') {
         const channelId = submitted.fields.getField('log_channel')?.values?.[0];
         if (!channelId) {
-            throw new Error('Please select a log channel.');
+            throw new Error('請選擇一個記錄頻道。');
         }
         return channelId;
     }
@@ -540,14 +540,14 @@ function resolveSettingModalValue(setting, submitted) {
     if (setting === 'modRole') {
         const roleId = submitted.fields.getField('mod_role')?.values?.[0];
         if (!roleId) {
-            throw new Error('Please select a moderator role.');
+            throw new Error('請選擇一個管理員身分組。');
         }
         return roleId;
     }
 
     const prefix = submitted.fields.getTextInputValue('value')?.trim();
     if (!prefix || prefix.length < 1 || prefix.length > 10 || /\s/.test(prefix)) {
-        throw new Error('Prefix must be 1-10 characters with no spaces.');
+        throw new Error('前綴長度必須為 1-10 個字元且不能包含空格。');
     }
     return prefix;
 }
@@ -555,15 +555,15 @@ function resolveSettingModalValue(setting, submitted) {
 function buildSettingSuccessMessage(setting, value, guild) {
     if (setting === 'logChannelId') {
         const channel = guild.channels.cache.get(value);
-        return `Log channel set to ${channel ?? `<#${value}>`}.`;
+        return `記錄頻道已設定為 ${channel ?? `<#${value}>` }。`;
     }
 
     if (setting === 'modRole') {
         const role = guild.roles.cache.get(value);
-        return `Moderator role set to ${role ?? `<@&${value}>`}.`;
+        return `管理員身分組已設定為 ${role ?? `<@&${value}>` }。`;
     }
 
-    return `Server prefix set to \`${value}\`.`;
+    return `伺服器前綴已設定為 \`${value}\`。`;
 }
 
 async function handleSettingModalSubmit(selectInteraction, rootInteraction, setting, guildId, client) {
@@ -587,7 +587,7 @@ async function handleSettingModalSubmit(selectInteraction, rootInteraction, sett
         await ConfigService.updateSetting(client, guildId, setting, value, submitted.user.id);
 
         await submitted.reply({
-            embeds: [successEmbed('Configuration Updated', buildSettingSuccessMessage(setting, value, submitted.guild))],
+            embeds: [successEmbed('設定已更新', buildSettingSuccessMessage(setting, value, submitted.guild))],
             flags: MessageFlags.Ephemeral,
         });
 
@@ -597,7 +597,7 @@ async function handleSettingModalSubmit(selectInteraction, rootInteraction, sett
         logger.error('Config wizard modal submit error:', error);
         await replyUserError(submitted, {
             type: ErrorTypes.CONFIGURATION,
-            message: error.message || 'Please try again.',
+            message: error.message || '請再試一次。',
         }).catch(() => {});
     }
 }
@@ -606,7 +606,7 @@ export default {
     slashOnly: true,
     data: new SlashCommandBuilder()
         .setName('configwizard')
-        .setDescription('Open the server configuration dashboard and setup wizard')
+        .setDescription('開啟伺服器設定儀表板與設定精靈')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .setDMPermission(false),
     category: 'Core',
@@ -621,7 +621,7 @@ export default {
             if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
                 return replyUserError(interaction, {
                     type: ErrorTypes.PERMISSION,
-                    message: 'You need the **Manage Server** permission to use this command.',
+                    message: '你需要 **管理伺服器** 權限才能使用此指令。',
                 });
             }
 
@@ -672,7 +672,7 @@ export default {
                     logger.error('Config dashboard interaction error:', error);
                     await replyUserError(componentInteraction, {
                         type: ErrorTypes.UNKNOWN,
-                        message: 'Failed to process your selection. Please try again.',
+                        message: '處理你的選擇時發生錯誤，請再試一次。',
                     }).catch(() => {});
                 }
             });
@@ -680,7 +680,7 @@ export default {
             logger.error('Config command error:', error);
             await replyUserError(interaction, {
                 type: ErrorTypes.CONFIGURATION,
-                message: 'Failed to open configuration dashboard. Please try again.',
+                message: '開啟設定儀表板失敗，請再試一次。',
             });
         }
     },
