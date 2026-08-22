@@ -22,85 +22,85 @@ export default {
     category: 'Music',
     data: new SlashCommandBuilder()
         .setName('music')
-        .setDescription('Manage playback, queue, and voice session settings')
+        .setDescription('管理音樂播放、播放佇列與語音工作階段設定')
         .addSubcommand((sub) =>
-            sub.setName('pause').setDescription('Pause playback'),
+            sub.setName('pause').setDescription('暫停播放音樂'),
         )
         .addSubcommand((sub) =>
-            sub.setName('resume').setDescription('Resume playback'),
+            sub.setName('resume').setDescription('恢復播放音樂'),
         )
         .addSubcommand((sub) =>
-            sub.setName('skip').setDescription('Skip the current track'),
+            sub.setName('skip').setDescription('跳過目前播放的曲目'),
         )
         .addSubcommand((sub) =>
-            sub.setName('stop').setDescription('Stop playback and clear the queue'),
+            sub.setName('stop').setDescription('停止播放並清除佇列'),
         )
         .addSubcommand((sub) =>
-            sub.setName('shuffle').setDescription('Shuffle the queue'),
+            sub.setName('shuffle').setDescription('隨機排序播放佇列'),
         )
         .addSubcommand((sub) =>
             sub
                 .setName('loop')
-                .setDescription('Set loop mode')
+                .setDescription('設定循環播放模式')
                 .addStringOption((opt) =>
                     opt
                         .setName('mode')
-                        .setDescription('Loop mode')
+                        .setDescription('循環模式')
                         .setRequired(true)
                         .addChoices(
-                            { name: 'Off', value: 'none' },
-                            { name: 'Track', value: 'track' },
-                            { name: 'Queue', value: 'queue' },
+                            { name: '關閉 (Off)', value: 'none' },
+                            { name: '單曲循環 (Track)', value: 'track' },
+                            { name: '佇列循環 (Queue)', value: 'queue' },
                         ),
                 ),
         )
         .addSubcommand((sub) =>
             sub
                 .setName('volume')
-                .setDescription('Set playback volume')
+                .setDescription('設定播放音量')
                 .addIntegerOption((opt) =>
-                    opt.setName('level').setDescription('Volume (0-100)').setRequired(true).setMinValue(0).setMaxValue(100),
+                    opt.setName('level').setDescription('音量大小 (0-100)').setRequired(true).setMinValue(0).setMaxValue(100),
                 ),
         )
         .addSubcommand((sub) =>
             sub
                 .setName('seek')
-                .setDescription('Seek to a position in the current track')
+                .setDescription('跳轉至目前曲目的指定播放進度')
                 .addIntegerOption((opt) =>
-                    opt.setName('seconds').setDescription('Position in seconds').setRequired(true).setMinValue(0),
+                    opt.setName('seconds').setDescription('要跳轉到的秒數').setRequired(true).setMinValue(0),
                 ),
         )
         .addSubcommand((sub) =>
             sub
                 .setName('remove')
-                .setDescription('Remove a track from the queue')
+                .setDescription('從佇列中移除指定的曲目')
                 .addIntegerOption((opt) =>
-                    opt.setName('position').setDescription('Queue position').setRequired(true).setMinValue(1),
+                    opt.setName('position').setDescription('佇列中的編號位置').setRequired(true).setMinValue(1),
                 ),
         )
         .addSubcommand((sub) =>
             sub
                 .setName('move')
-                .setDescription('Move a track in the queue')
+                .setDescription('移動佇列中曲目的順序')
                 .addIntegerOption((opt) =>
-                    opt.setName('from').setDescription('Current position').setRequired(true).setMinValue(1),
+                    opt.setName('from').setDescription('原本的位置').setRequired(true).setMinValue(1),
                 )
                 .addIntegerOption((opt) =>
-                    opt.setName('to').setDescription('New position').setRequired(true).setMinValue(1),
+                    opt.setName('to').setDescription('新的位置').setRequired(true).setMinValue(1),
                 ),
         )
         .addSubcommand((sub) =>
-            sub.setName('clear').setDescription('Clear the queue'),
+            sub.setName('clear').setDescription('清空播放佇列'),
         )
         .addSubcommand((sub) =>
-            sub.setName('leave').setDescription('Disconnect the bot from the voice channel'),
+            sub.setName('leave').setDescription('讓機器人離開語音頻道'),
         )
         .addSubcommand((sub) =>
             sub
                 .setName('247')
-                .setDescription('Toggle 24/7 mode (stay in voice channel when idle)')
+                .setDescription('切換 24/7 模式（閒置時保持在語音頻道中）')
                 .addBooleanOption((opt) =>
-                    opt.setName('enabled').setDescription('Enable or disable 24/7 mode').setRequired(true),
+                    opt.setName('enabled').setDescription('啟用或停用 24/7 模式').setRequired(true),
                 ),
         ),
 
@@ -181,7 +181,7 @@ export default {
             }
             default:
                 await InteractionHelper.safeEditReply(interaction, {
-                    content: 'Unknown music subcommand.',
+                    content: '未知的音樂子指令。',
                 });
         }
     },
