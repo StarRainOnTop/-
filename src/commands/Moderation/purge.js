@@ -9,11 +9,11 @@ import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 export default {
     data: new SlashCommandBuilder()
     .setName("purge")
-    .setDescription("Delete a specific amount of messages")
+    .setDescription("刪除指定數量的訊息")
     .addIntegerOption((option) =>
       option
         .setName("amount")
-        .setDescription("Number of messages (1-100)")
+        .setDescription("訊息數量 (1-100)")
         .setRequired(true),
     )
 .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
@@ -37,7 +37,7 @@ export default {
     const channel = interaction.channel;
 
     if (amount < 1 || amount > 100)
-      return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Please specify a number between 1 and 100.' });
+      return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: '請指定 1 到 100 之間的數字。' });
 
     try {
       const fetched = await channel.messages.fetch({ limit: amount });
@@ -48,10 +48,10 @@ export default {
         client,
         guild: interaction.guild,
         event: {
-          action: "Messages Purged",
-          target: `${channel} (${deletedCount} messages)`,
+          action: "已清除訊息",
+          target: `${channel} (${deletedCount} 則訊息)`,
           executor: `${interaction.user.tag} (${interaction.user.id})`,
-          reason: `Deleted ${deletedCount} messages`,
+          reason: `刪除了 ${deletedCount} 則訊息`,
           metadata: {
             channelId: channel.id,
             messageCount: deletedCount,
@@ -64,8 +64,8 @@ export default {
       await InteractionHelper.safeEditReply(interaction, {
         embeds: [
           successEmbed(
-            "Messages Purged",
-            `Deleted ${deletedCount} messages in ${channel}.`,
+            "訊息已清除",
+            `已在 ${channel} 中刪除 ${deletedCount} 則訊息。`,
           ),
         ],
         flags: MessageFlags.Ephemeral,
@@ -78,7 +78,7 @@ export default {
       }, 3000);
     } catch (error) {
       logger.error('Purge command error:', error);
-      await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An unexpected error occurred during message deletion. Note: Messages older than 14 days cannot be bulk deleted.' });
+      await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '刪除訊息時發生未預期的錯誤。注意：超過 14 天的訊息無法進行批次刪除。' });
     }
   }
 };
