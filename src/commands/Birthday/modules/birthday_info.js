@@ -16,10 +16,10 @@ export default {
         if (!birthdayData) {
             const embed = new EmbedBuilder()
                 .setColor(0xFF0000)
-                .setTitle('No Birthday Found')
+                .setTitle('找不到生日')
                 .setDescription(targetUser.id === interaction.user.id 
-                    ? "You haven't set your birthday yet. Use `/birthday set` to add it!"
-                    : `${targetUser.username} hasn't set their birthday yet.`);
+                    ? "你還沒有設定生日。請使用 `/birthday set` 來新增！"
+                    : `${targetUser.username} 還沒有設定生日。`);
             return await InteractionHelper.safeEditReply(interaction, {
                 embeds: [embed]
             });
@@ -27,14 +27,14 @@ export default {
 
         const embed = new EmbedBuilder()
             .setColor(0x00FF00)
-            .setTitle('Birthday Information')
-            .setDescription(`**Date:** ${birthdayData.monthName} ${birthdayData.day}\n**User:** ${targetUser.toString()}`);
+            .setTitle('生日資訊')
+            .setDescription(`**日期：** ${birthdayData.monthName} ${birthdayData.day}日\n**使用者：** ${targetUser.toString()}`);
 
         await InteractionHelper.safeEditReply(interaction, {
             embeds: [embed]
         });
 
-        logger.info('Birthday info retrieved successfully', {
+        logger.info('成功取得生日資訊', {
             userId: interaction.user.id,
             targetUserId: targetUser.id,
             guildId,
