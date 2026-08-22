@@ -17,32 +17,32 @@ const defaultAccountAgeDays = autoVerifyDefaults.defaultAccountAgeDays ?? 7;
 export default {
     data: new SlashCommandBuilder()
         .setName("autoverify")
-        .setDescription("Configure automatic verification settings")
+        .setDescription("設定自動驗證選項")
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .addSubcommand(subcommand =>
             subcommand
                 .setName("setup")
-                .setDescription("Set up automatic verification")
+                .setDescription("設定自動驗證")
                 .addRoleOption(option =>
                     option
                         .setName("role")
-                        .setDescription("Role to assign to users who meet auto-verify criteria")
+                        .setDescription("要指派給符合自動驗證條件之使用者的身分組")
                         .setRequired(true)
                 )
                 .addStringOption(option =>
                     option
                         .setName("criteria")
-                        .setDescription("Criteria for automatic verification")
+                        .setDescription("自動驗證的條件")
                         .addChoices(
-                            { name: "Account Age", value: "account_age" },
-                            { name: "No Criteria", value: "none" }
+                            { name: "帳號年資", value: "account_age" },
+                            { name: "無條件", value: "none" }
                         )
                         .setRequired(true)
                 )
                 .addIntegerOption(option =>
                     option
                         .setName("account_age_days")
-                        .setDescription("Minimum account age in days (required for account age criteria)")
+                        .setDescription("最低帳號年資 (天數，帳號年資條件所必需)")
                         .setMinValue(minAccountAgeDays)
                         .setMaxValue(maxAccountAgeDays)
                         .setRequired(false)
@@ -51,7 +51,7 @@ export default {
         .addSubcommand(subcommand =>
             subcommand
                 .setName("dashboard")
-                .setDescription("Open the auto-verification dashboard for customization")
+                .setDescription("開啟自動驗證儀表板進行自訂")
         ),
 
     async execute(interaction, config, client) {
@@ -68,7 +68,7 @@ export default {
                     throw createError(
                         `Unknown subcommand: ${subcommand}`,
                         ErrorTypes.VALIDATION,
-                        "Invalid subcommand selected.",
+                        "選取了無效的子指令。",
                         { subcommand }
                     );
             }
@@ -95,7 +95,7 @@ async function handleSetup(interaction, guild, client) {
             throw createError(
                 'Auto-verify enable blocked by conflicting onboarding system',
                 ErrorTypes.CONFIGURATION,
-                'You cannot enable **AutoVerify** while the verification system or AutoRole is configured. Disable those first.',
+                '當驗證系統或自動身分組已設定時，你無法啟用**自動驗證 (AutoVerify)**。請先將其停用。',
                 {
                     guildId: guild.id,
                     verificationEnabled,
@@ -111,7 +111,7 @@ async function handleSetup(interaction, guild, client) {
             throw createError(
                 'Bot member not found in guild cache',
                 ErrorTypes.CONFIGURATION,
-                'I could not verify my permissions in this server. Please try again in a moment.',
+                '我找不到我在這個伺服器中的成員快取，請稍後再試一次。',
                 { guildId: guild.id }
             );
         }
@@ -120,7 +120,7 @@ async function handleSetup(interaction, guild, client) {
             throw createError(
                 'Missing ManageRoles permission',
                 ErrorTypes.PERMISSION,
-                "I need the 'Manage Roles' permission to assign auto-verify roles.",
+                "我需要「管理身分組」權限才能指派自動驗證身分組。",
                 { guildId: guild.id }
             );
         }
@@ -129,7 +129,7 @@ async function handleSetup(interaction, guild, client) {
             throw createError(
                 'Invalid auto-verify role selected',
                 ErrorTypes.VALIDATION,
-                'Please choose a normal assignable role (not @everyone or an integration-managed role).',
+                '請選擇一個普通可指派的身分組 (不可選擇 @everyone 或由整合管理的身份組)。',
                 { guildId: guild.id, roleId: targetRole.id, managed: targetRole.managed }
             );
         }
@@ -138,7 +138,7 @@ async function handleSetup(interaction, guild, client) {
             throw createError(
                 'Role hierarchy error for auto-verify setup',
                 ErrorTypes.PERMISSION,
-                'The selected auto-verify role must be below my highest role in the server role hierarchy.',
+                '所選的自動驗證身分組必須低於我在伺服器身分組階層中的最高身分組。',
                 { guildId: guild.id, roleId: targetRole.id, rolePosition: targetRole.position, botRolePosition: botMember.roles.highest.position }
             );
         }
@@ -162,10 +162,10 @@ async function handleSetup(interaction, guild, client) {
         let criteriaDescription = "";
         switch (criteria) {
             case "account_age":
-                criteriaDescription = `\`${accountAgeDays} days\` old`;
+                criteriaDescription = `年資滿 \`${accountAgeDays} 天\``;
                 break;
             case "none":
-                criteriaDescription = "All users immediately";
+                criteriaDescription = "所有使用者立即生效";
                 break;
         }
 
@@ -178,8 +178,8 @@ async function handleSetup(interaction, guild, client) {
 
         await InteractionHelper.safeEditReply(interaction, {
             embeds: [successEmbed(
-                "Auto-Verification Configured",
-                `Automatic verification has been configured!\n\n**Role:** ${targetRole}\n**Criteria:** ${criteriaDescription}\n\nUsers who meet these criteria will receive this role when they join the server.`
+                "已設定自動驗證",
+                `自動驗證已成功設定！\n\n**身分組：** ${targetRole}\n**條件：** ${criteriaDescription}\n\n符合這些條件的使用者在加入伺服器時將會獲得此身分組。`
             )]
         });
 
