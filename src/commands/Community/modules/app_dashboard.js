@@ -40,75 +40,75 @@ import { setLogChannel, resolveApplicationLogChannel, resolveLogChannel } from '
 async function buildDashboardEmbed(settings, roles, guild, client) {
     const guildConfig = await getGuildConfig(client, guild.id);
     const applicationsChannel = resolveLogChannel(guildConfig, 'applications') || settings.logChannelId;
-    const logChannel = applicationsChannel ? `<#${applicationsChannel}>` : '`Not set`';
+    const logChannel = applicationsChannel ? `<#${applicationsChannel}>` : '`未設定`';
     const managerRoleList =
         settings.managerRoles?.length > 0
             ? settings.managerRoles.map(id => `<@&${id}>`).join(',')
-            : '`None configured`';
+            : '`未設定任何項目`';
     const roleList =
         roles.length > 0
             ? roles.map(r => `<@&${r.roleId}> — ${r.name}`).join('\n')
-            : '`No application roles configured`';
+            : '`未設定任何申請角色`';
     const questionCount = settings.questions?.length ?? 0;
     const firstQ =
         settings.questions?.[0]
             ? `\`${settings.questions[0].length > 55 ? settings.questions[0].substring(0, 55) + '…' : settings.questions[0]}\``
-            : '`Not set`';
+            : '`未設定`';
 
     return new EmbedBuilder()
-        .setTitle('Applications Dashboard')
-        .setDescription(`Manage application settings for **${guild.name}**.\nSelect an option below to modify a setting.`)
+        .setTitle('申請儀表板')
+        .setDescription(`管理 **${guild.name}** 的申請設定。\n請在下方選擇一個選項來修改設定。`)
         .setColor(getColor('info'))
         .addFields(
-            { name: 'Application Status', value: settings.enabled ? 'Enabled' : 'Disabled', inline: true },
-            { name: 'Log Channel', value: logChannel, inline: true },
+            { name: '申請狀態', value: settings.enabled ? '已啟用' : '已停用', inline: true },
+            { name: '記錄頻道', value: logChannel, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
-            { name: 'Manager Roles', value: managerRoleList, inline: false },
-            { name: 'Questions', value: `${questionCount} configured — first: ${firstQ}`, inline: false },
-            { name: 'Application Roles', value: roleList, inline: false },
+            { name: '管理員角色', value: managerRoleList, inline: false },
+            { name: '問題', value: `${questionCount} 個已設定 — 第一個：${firstQ}`, inline: false },
+            { name: '申請角色', value: roleList, inline: false },
             {
-                name: 'Retention',
-                value: `Pending: **${settings.pendingApplicationRetentionDays ?? 30}d** · Reviewed: **${settings.reviewedApplicationRetentionDays ?? 14}d**`,
+                name: '保留期限',
+                value: `待審核：**${settings.pendingApplicationRetentionDays ?? 30}天** · 已審核：**${settings.reviewedApplicationRetentionDays ?? 14}天**`,
                 inline: false,
             },
         )
-        .setFooter({ text: 'Dashboard closes after 15 minutes of inactivity' })
+        .setFooter({ text: '儀表板將在閒置 15 分鐘後關閉' })
         .setTimestamp();
 }
 
 function buildSelectMenu(guildId) {
     return new StringSelectMenuBuilder()
         .setCustomId(`app_cfg_${guildId}`)
-        .setPlaceholder('Select a setting to configure...')
+        .setPlaceholder('選擇要設定的項目...')
         .addOptions(
             new StringSelectMenuOptionBuilder()
-                .setLabel('Log Channel')
-                .setDescription('Set the channel where new applications are logged')
+                .setLabel('記錄頻道')
+                .setDescription('設定記錄新申請的頻道')
                 .setValue('log_channel')
                 .setEmoji('📢'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('Manager Roles')
-                .setDescription('Add or remove a role that can manage applications')
+                .setLabel('管理員角色')
+                .setDescription('新增或移除可管理申請的角色')
                 .setValue('manager_role')
                 .setEmoji('🛡️'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('Edit Questions')
-                .setDescription('Customise the questions shown on the application form')
+                .setLabel('編輯問題')
+                .setDescription('自訂申請表單中顯示的問題')
                 .setValue('questions')
                 .setEmoji('📝'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('Add Application Role')
-                .setDescription('Add a role that members can apply for')
+                .setLabel('新增申請角色')
+                .setDescription('新增會員可以申請的角色')
                 .setValue('role_add')
                 .setEmoji('➕'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('Remove Application Role')
-                .setDescription('Remove a role from the applications list')
+                .setLabel('移除申請角色')
+                .setDescription('從申請列表中移除角色')
                 .setValue('role_remove')
                 .setEmoji('➖'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('Retention Period')
-                .setDescription('Set how long pending and reviewed applications are kept')
+                .setLabel('保留期限')
+                .setDescription('設定待審核與已審核申請的保留時間')
                 .setValue('retention')
                 .setEmoji('🗑️'),
         );
@@ -119,7 +119,7 @@ function buildButtonRow(settings, guildId, disabled = false) {
     return new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`app_cfg_toggle_${guildId}`)
-            .setLabel('Applications')
+            .setLabel('申請系統')
             .setStyle(systemOn ? ButtonStyle.Success : ButtonStyle.Danger)
             .setDisabled(disabled),
     );
@@ -160,9 +160,9 @@ export default {
 
             if (isCompletelyUnconfigured) {
                 throw new TitanBotError(
-                    'Applications system not set up',
+                    '申請系統尚未設定',
                     ErrorTypes.CONFIGURATION,
-                    'The applications system has not been configured yet. Please run `/app-admin setup` to create your first application.',
+                    '申請系統尚未設定。請執行 `/app-admin setup` 來建立您的第一個申請。',
                 );
             }
 
@@ -187,9 +187,9 @@ export default {
             if (error instanceof TitanBotError) throw error;
             logger.error('Unexpected error in app_dashboard:', error);
             throw new TitanBotError(
-                `Applications dashboard failed: ${error.message}`,
+                `申請儀表板失敗：${error.message}`,
                 ErrorTypes.UNKNOWN,
-                'Failed to open the applications dashboard.',
+                '無法開啟申請儀表板。',
             );
         }
     },
@@ -198,20 +198,20 @@ export default {
 async function showApplicationSelector(interaction, roles, settings, guildId, client) {
     const selectMenu = new StringSelectMenuBuilder()
         .setCustomId(`app_select_${guildId}`)
-        .setPlaceholder('Select an application to configure...')
+        .setPlaceholder('選擇要設定的申請...')
         .addOptions(
             roles.map(role =>
                 new StringSelectMenuOptionBuilder()
                     .setLabel(role.name)
-                    .setDescription(`Configure the ${role.name} application`)
+                    .setDescription(`設定 ${role.name} 申請`)
                     .setValue(role.roleId)
                     .setEmoji('📋'),
             ),
         );
 
     const embed = new EmbedBuilder()
-        .setTitle('Select Application')
-        .setDescription('Choose which application role you want to configure.')
+        .setTitle('選擇申請')
+        .setDescription('選擇您想要設定的申請角色。')
         .setColor(getColor('info'));
 
     await InteractionHelper.safeEditReply(interaction, {
@@ -243,7 +243,7 @@ async function showApplicationSelector(interaction, roles, settings, guildId, cl
         if (reason === 'time' && collected.size === 0) {
             replyUserError(interaction, {
                 type: ErrorTypes.RATE_LIMIT,
-                message: 'No selection was made. The dashboard has closed.',
+                message: '未做任何選擇。儀表板已關閉。',
             }).catch(() => {});
         }
     });
@@ -274,54 +274,54 @@ async function showApplicationDashboard(rootInteraction, selectedRole, settings,
 
     const logChannelDisplay = appLogChannelId 
         ? `<#${appLogChannelId}>` 
-        : '`Inherits global log channel`';
+        : '`繼承全域記錄頻道`';
     
     const questionsDisplay = questions.length > 0
         ? questions.map((q, i) => `${i + 1}. \`${q.length > 60 ? q.substring(0, 60) + '…' : q}\``).join('\n')
-        : '`Inherits global questions`';
+        : '`繼承全域問題`';
     
     const managerRolesDisplay = settings.managerRoles && settings.managerRoles.length > 0
         ? settings.managerRoles.map(id => `<@&${id}>`).join(',')
-        : '`None configured`';
+        : '`未設定任何項目`';
 
     const embed = new EmbedBuilder()
-        .setTitle('📋 Application Dashboard')
-        .setDescription(`Configuration for **${selectedRole.name}**`)
+        .setTitle('📋 申請儀表板')
+        .setDescription(`**${selectedRole.name}** 的設定`)
         .setColor(isEnabled ? getColor('success') : getColor('error'))
         .addFields(
             { 
-                name: 'Role', 
+                name: '角色', 
                 value: roleObj ? roleObj.toString() : `<@&${selectedRole.roleId}>`, 
                 inline: true 
             },
             { 
-                name: 'Application Status', 
-                value: isEnabled ? '✅ **Enabled**' : '❌ **Disabled**', 
+                name: '申請狀態', 
+                value: isEnabled ? '✅ **已啟用**' : '❌ **已停用**', 
                 inline: true 
             },
             { name: '\u200B', value: '\u200B', inline: true },
             { 
-                name: 'Questions', 
+                name: '問題', 
                 value: questionsDisplay,
                 inline: false 
             },
             { 
-                name: 'Log Channel', 
+                name: '記錄頻道', 
                 value: logChannelDisplay,
                 inline: true 
             },
             { 
-                name: 'Manager Roles',
+                name: '管理員角色',
                 value: managerRolesDisplay,
                 inline: true 
             },
             { 
-                name: 'Retention Period',
-                value: `Pending: **${settings.pendingApplicationRetentionDays ?? 30}d** · Reviewed: **${settings.reviewedApplicationRetentionDays ?? 14}d**`,
+                name: '保留期限',
+                value: `待審核：**${settings.pendingApplicationRetentionDays ?? 30}天** · 已審核：**${settings.reviewedApplicationRetentionDays ?? 14}天**`,
                 inline: false 
             },
         )
-        .setFooter({ text: 'Dashboard closes after 10 minutes of inactivity' })
+        .setFooter({ text: '儀表板將在閒置 10 分鐘後關閉' })
         .setTimestamp();
 
     const configMenu = buildApplicationSelectMenu(guildId, selectedRole.roleId);
@@ -329,11 +329,11 @@ async function showApplicationDashboard(rootInteraction, selectedRole, settings,
     const controlButtons = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`app_toggle_${selectedRole.roleId}`)
-            .setLabel(isEnabled ? 'Disable Application' : 'Enable Application')
+            .setLabel(isEnabled ? '停用申請' : '啟用申請')
             .setStyle(isEnabled ? ButtonStyle.Danger : ButtonStyle.Success),
         new ButtonBuilder()
             .setCustomId(`app_delete_${selectedRole.roleId}`)
-            .setLabel('Delete Application')
+            .setLabel('刪除申請')
             .setStyle(ButtonStyle.Danger)
             .setEmoji('🗑️'),
     );
@@ -390,15 +390,15 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
             }
         } catch (error) {
             if (error instanceof TitanBotError) {
-                logger.debug(`Applications config validation error: ${error.message}`);
+                logger.debug(`申請設定驗證錯誤：${error.message}`);
             } else {
-                logger.error('Unexpected applications dashboard error:', error);
+                logger.error('未預期的申請儀表板錯誤：', error);
             }
 
             const errorMessage =
                 error instanceof TitanBotError
-                    ? error.userMessage || 'An error occurred while processing your selection.'
-                    : 'An unexpected error occurred while updating the configuration.';
+                    ? error.userMessage || '處理您的選擇時發生錯誤。'
+                    : '更新設定時發生未預期的錯誤。';
 
             if (!selectInteraction.replied && !selectInteraction.deferred) {
                 await safeDeferInteraction(selectInteraction);
@@ -414,8 +414,8 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
     collector.on('end', async (collected, reason) => {
         if (reason === 'time') {
             const timeoutEmbed = new EmbedBuilder()
-                .setTitle('\u23f0 Dashboard Timed Out')
-                .setDescription('This dashboard has been closed due to inactivity. Please run the command again to continue.')
+                .setTitle('\u23f0 儀表板已逾時')
+                .setDescription('此儀表板因長時間未互動而已關閉。請再次執行指令以繼續。')
                 .setColor(getColor('error'));
                 
             await InteractionHelper.safeEditReply(interaction, {
@@ -450,21 +450,21 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
 
                 await toggleInteraction.followUp({
                     embeds: [successEmbed(
-                        wasEnabled ? '🔴 Applications Disabled' : '🟢 Applications Enabled',
-                        `The applications system is now **${wasEnabled ? 'disabled' : 'enabled'}**.\n\n${
+                        wasEnabled ? '🔴 申請已停用' : '🟢 申請已啟用',
+                        `申請系統現已**${wasEnabled ? '停用' : '啟用'}**。\n\n${
                             wasEnabled 
-                                ? 'Members will no longer be able to apply for roles.' 
-                                : 'Members can now start applying for roles.'
+                                ? '會員將無法再申請角色。' 
+                                : '會員現在可以開始申請角色。'
                         }`,
                     )],
                     flags: MessageFlags.Ephemeral,
                 });
 
             } catch (error) {
-                logger.error('Error toggling global application status:', error);
+                logger.error('切換全域申請狀態時發生錯誤：', error);
                 await replyUserError(toggleInteraction, {
                     type: ErrorTypes.UNKNOWN,
-                    message: 'An error occurred while toggling the application status.',
+                    message: '切換申請狀態時發生錯誤。',
                 });
             }
         });
@@ -472,8 +472,8 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
         globalToggleCollector.on('end', async (collected, reason) => {
             if (reason === 'time') {
                 const timeoutEmbed = new EmbedBuilder()
-                    .setTitle('Configuration Timeout')
-                    .setDescription('This dashboard session has timed out due to inactivity (10 minutes).\n\nTo continue configuring your applications, please run the command again.')
+                    .setTitle('設定逾時')
+                    .setDescription('此儀表板工作階段因長時間未互動（10 分鐘）而逾時。\n\n若要繼續設定您的申請，請再次執行指令。')
                     .setColor(getColor('warning'));
                     
                 await InteractionHelper.safeEditReply(interaction, {
@@ -496,21 +496,21 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
         btnCollector.on('collect', async btnInteraction => {
             
             const appRoleForDelete = roles.find(r => r.roleId === selectedRoleId);
-            const appNameForDelete = appRoleForDelete?.name ?? 'this application';
+            const appNameForDelete = appRoleForDelete?.name ?? '此申請';
 
             const confirmModal = new ModalBuilder()
                 .setCustomId('app_delete_confirm')
-                .setTitle('Confirm Application Deletion');
+                .setTitle('確認刪除申請');
 
             const deleteWarningText = new TextDisplayBuilder()
-                .setContent(`⚠️ You are about to permanently delete **${appNameForDelete}**. All stored applications and settings for this role will be removed and cannot be recovered.`);
+                .setContent(`⚠️ 您即將永久刪除 **${appNameForDelete}**。此角色的所有儲存申請與設定都將被移除且無法復原。`);
 
             const deleteCheckbox = new CheckboxBuilder()
                 .setCustomId('confirm_delete')
                 .setDefault(false);
 
             const deleteCheckboxLabel = new LabelBuilder()
-                .setLabel('I confirm — this cannot be undone')
+                .setLabel('我確認 — 此操作無法復原')
                 .setCheckboxComponent(deleteCheckbox);
 
             confirmModal
@@ -520,10 +520,10 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
             try {
                 await btnInteraction.showModal(confirmModal);
             } catch (error) {
-                logger.error('Error showing delete confirmation modal:', error);
+                logger.error('顯示刪除確認互動視窗時發生錯誤：', error);
                 await replyUserError(btnInteraction, {
                     type: ErrorTypes.UNKNOWN,
-                    message: 'Failed to show confirmation modal. Please try again.',
+                    message: '無法顯示確認互動視窗，請再試一次。',
                 }).catch(() => {});
                 return;
             }
@@ -538,14 +538,14 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
                 if (!confirmSubmit) {
                     await replyUserError(btnInteraction, {
                         type: ErrorTypes.VALIDATION,
-                        message: 'Application deletion was cancelled.',
+                        message: '申請刪除已取消。',
                     });
                     return;
                 }
 
                 const confirmed = confirmSubmit.fields.getCheckbox('confirm_delete');
                 if (!confirmed) {
-                    await replyUserError(confirmSubmit, { type: ErrorTypes.VALIDATION, message: 'You must tick the confirmation checkbox to delete the application.' });
+                    await replyUserError(confirmSubmit, { type: ErrorTypes.VALIDATION, message: '您必須勾選確認方塊才能刪除申請。' });
                     return;
                 }
 
@@ -554,10 +554,10 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
                 btnCollector.stop();
 
             } catch (error) {
-                logger.error('Error confirming application deletion:', error);
+                logger.error('確認刪除申請時發生錯誤：', error);
                 await replyUserError(btnInteraction, {
                     type: ErrorTypes.UNKNOWN,
-                    message: 'An error occurred while deleting the application.',
+                    message: '刪除申請時發生錯誤。',
                 });
             }
         });
@@ -565,8 +565,8 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
         btnCollector.on('end', async (collected, reason) => {
             if (reason === 'time') {
                 const timeoutEmbed = new EmbedBuilder()
-                    .setTitle('Configuration Timeout')
-                    .setDescription('This dashboard session has timed out due to inactivity (10 minutes).\n\nTo continue configuring your applications, please run the command again.')
+                    .setTitle('設定逾時')
+                    .setDescription('此儀表板工作階段因長時間未互動（10 分鐘）而逾時。\n\n若要繼續設定您的申請，請再次執行指令。')
                     .setColor(getColor('warning'));
                     
                 await InteractionHelper.safeEditReply(interaction, {
@@ -594,7 +594,7 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
                 if (roleIndex === -1) {
                     await replyUserError(toggleInteraction, {
                         type: ErrorTypes.USER_INPUT,
-                        message: 'Application role not found.',
+                        message: '找不到申請角色。',
                     });
                     return;
                 }
@@ -610,21 +610,21 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
 
                 await toggleInteraction.followUp({
                     embeds: [successEmbed(
-                        wasEnabled ? '🔴 Application Disabled' : '🟢 Application Enabled',
-                        `The **${updatedRole.name}** application is now **${wasEnabled ? 'disabled' : 'enabled'}**.\n\n${
+                        wasEnabled ? '🔴 申請已停用' : '🟢 申請已啟用',
+                        `**${updatedRole.name}** 申請現已**${wasEnabled ? '停用' : '啟用'}**。\n\n${
                             wasEnabled 
-                                ? 'This application will no longer appear in `/apply submit` options.' 
-                                : 'This application will now appear in `/apply submit` options.'
+                                ? '此申請將不再顯示於 \`/apply submit\` 選項中。' 
+                                : '此申請現在將顯示於 \`/apply submit\` 選項中。'
                         }`,
                     )],
                     flags: MessageFlags.Ephemeral,
                 });
 
             } catch (error) {
-                logger.error('Error toggling application status:', error);
+                logger.error('切換申請狀態時發生錯誤：', error);
                 await replyUserError(toggleInteraction, {
                     type: ErrorTypes.UNKNOWN,
-                    message: 'An error occurred while toggling the application status.',
+                    message: '切換申請狀態時發生錯誤。',
                 });
             }
         });
@@ -632,8 +632,8 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
         toggleCollector.on('end', async (collected, reason) => {
             if (reason === 'time') {
                 const timeoutEmbed = new EmbedBuilder()
-                    .setTitle('Configuration Timeout')
-                    .setDescription('This dashboard session has timed out due to inactivity (10 minutes).\n\nTo continue configuring your applications, please run the command again.')
+                    .setTitle('設定逾時')
+                    .setDescription('此儀表板工作階段因長時間未互動（10 分鐘）而逾時。\n\n若要繼續設定您的申請，請再次執行指令。')
                     .setColor(getColor('warning'));
                     
                 await InteractionHelper.safeEditReply(interaction, {
@@ -648,26 +648,26 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
 function buildApplicationSelectMenu(guildId, roleId) {
     return new StringSelectMenuBuilder()
         .setCustomId(`app_cfg_${roleId}`)
-        .setPlaceholder('Select a setting to configure...')
+        .setPlaceholder('選擇要設定的項目...')
         .addOptions(
             new StringSelectMenuOptionBuilder()
-                .setLabel('Log Channel')
-                .setDescription('Set the channel where applications are logged')
+                .setLabel('記錄頻道')
+                .setDescription('設定記錄申請的頻道')
                 .setValue('log_channel')
                 .setEmoji('📢'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('Manager Roles')
-                .setDescription('Add or remove a role that can manage applications')
+                .setLabel('管理員角色')
+                .setDescription('新增或移除可管理申請的角色')
                 .setValue('manager_role')
                 .setEmoji('🛡️'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('Edit Questions')
-                .setDescription('Customise the questions shown on the application form')
+                .setLabel('編輯問題')
+                .setDescription('自訂申請表單中顯示的問題')
                 .setValue('questions')
                 .setEmoji('📝'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('Retention Period')
-                .setDescription('Set how long pending and reviewed applications are kept')
+                .setLabel('保留期限')
+                .setDescription('設定待審核與已審核申請的保留時間')
                 .setValue('retention')
                 .setEmoji('🗑️'),
         );
@@ -682,19 +682,19 @@ async function handleLogChannel(selectInteraction, rootInteraction, settings, ro
 
     const modal = new ModalBuilder()
         .setCustomId(`app_cfg_log_channel_modal_${guildId}_${selectedRoleId || 'global'}`)
-        .setTitle('Configure Log Channel');
+        .setTitle('設定記錄頻道');
 
     const channelSelect = new ChannelSelectMenuBuilder()
         .setCustomId('log_channel')
-        .setPlaceholder('Select a text channel...')
+        .setPlaceholder('選擇文字頻道...')
         .setMinValues(1)
         .setMaxValues(1)
         .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
         .setRequired(true);
 
     const channelLabel = new LabelBuilder()
-        .setLabel('Log Channel')
-        .setDescription('Channel where new applications will be logged')
+        .setLabel('記錄頻道')
+        .setDescription('將記錄新申請的頻道')
         .setChannelSelectMenuComponent(channelSelect);
 
     modal.addLabelComponents(channelLabel);
@@ -721,17 +721,17 @@ async function handleLogChannel(selectInteraction, rootInteraction, settings, ro
         }
 
         await modalSubmission.reply({
-            embeds: [successEmbed('Log Channel Updated', `Application logs will now be sent to ${channel ?? `<#${channelId}>`}.\nYou can also manage this from \`/logging dashboard\`.`)],
+            embeds: [successEmbed('記錄頻道已更新', `申請記錄現在將傳送至 ${channel ?? `<#${channelId}>`}。\n您也可以從 \`/logging dashboard\` 管理此設定。`)],
             flags: MessageFlags.Ephemeral,
         });
 
         await refreshDashboard(rootInteraction, settings, roles, guildId, client);
     } catch (error) {
         if (error.code === 'INTERACTION_TIMEOUT') return;
-        logger.error('Error in log channel modal:', error);
+        logger.error('記錄頻道互動視窗發生錯誤：', error);
         await replyUserError(selectInteraction, {
             type: ErrorTypes.UNKNOWN,
-            message: 'An error occurred while updating the log channel.',
+            message: '更新記錄頻道時發生錯誤。',
         });
     }
 }
@@ -739,18 +739,18 @@ async function handleLogChannel(selectInteraction, rootInteraction, settings, ro
 async function handleManagerRole(selectInteraction, rootInteraction, settings, roles, guildId, client) {
     const modal = new ModalBuilder()
         .setCustomId(`app_cfg_manager_role_modal_${guildId}`)
-        .setTitle('Configure Manager Roles');
+        .setTitle('設定管理員角色');
 
     const roleSelect = new RoleSelectMenuBuilder()
         .setCustomId('manager_roles')
-        .setPlaceholder('Select roles to grant manager access...')
+        .setPlaceholder('選擇要授予管理員權限的角色...')
         .setMinValues(1)
         .setMaxValues(5)
         .setRequired(true);
 
     const roleLabel = new LabelBuilder()
-        .setLabel('Manager Roles')
-        .setDescription('Selected roles will be toggled on/off as manager roles')
+        .setLabel('管理員角色')
+        .setDescription('選定的角色將切換為開/關管理員角色')
         .setRoleSelectMenuComponent(roleSelect);
 
     modal.addLabelComponents(roleLabel);
@@ -779,20 +779,20 @@ async function handleManagerRole(selectInteraction, rootInteraction, settings, r
 
         const finalList = settings.managerRoles.length > 0
             ? settings.managerRoles.map(id => `<@&${id}>`).join(',')
-            : '`None`';
+            : '`無`';
 
         await modalSubmission.reply({
-            embeds: [successEmbed('Manager Roles Updated', `Current manager roles: ${finalList}`)],
+            embeds: [successEmbed('管理員角色已更新', `目前管理員角色：${finalList}`)],
             flags: MessageFlags.Ephemeral,
         });
 
         await refreshDashboard(rootInteraction, settings, roles, guildId, client);
     } catch (error) {
         if (error.code === 'INTERACTION_TIMEOUT') return;
-        logger.error('Error in manager role modal:', error);
+        logger.error('管理員角色互動視窗發生錯誤：', error);
         await replyUserError(selectInteraction, {
             type: ErrorTypes.UNKNOWN,
-            message: 'An error occurred while updating manager roles.',
+            message: '更新管理員角色時發生錯誤。',
         });
     }
 }
@@ -807,12 +807,12 @@ async function handleQuestions(selectInteraction, rootInteraction, settings, rol
 
     const modal = new ModalBuilder()
         .setCustomId('app_cfg_questions')
-        .setTitle('Edit Application Questions')
+        .setTitle('編輯申請問題')
         .addComponents(
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('q1')
-                    .setLabel('Question 1 (required)')
+                    .setLabel('問題 1（必填）')
                     .setStyle(TextInputStyle.Short)
                     .setValue(currentQuestions[0] ?? '')
                     .setMaxLength(100)
@@ -822,7 +822,7 @@ async function handleQuestions(selectInteraction, rootInteraction, settings, rol
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('q2')
-                    .setLabel('Question 2 (optional)')
+                    .setLabel('問題 2（選填）')
                     .setStyle(TextInputStyle.Short)
                     .setValue(currentQuestions[1] ?? '')
                     .setMaxLength(100)
@@ -831,7 +831,7 @@ async function handleQuestions(selectInteraction, rootInteraction, settings, rol
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('q3')
-                    .setLabel('Question 3 (optional)')
+                    .setLabel('問題 3（選填）')
                     .setStyle(TextInputStyle.Short)
                     .setValue(currentQuestions[2] ?? '')
                     .setMaxLength(100)
@@ -840,7 +840,7 @@ async function handleQuestions(selectInteraction, rootInteraction, settings, rol
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('q4')
-                    .setLabel('Question 4 (optional)')
+                    .setLabel('問題 4（選填）')
                     .setStyle(TextInputStyle.Short)
                     .setValue(currentQuestions[3] ?? '')
                     .setMaxLength(100)
@@ -849,7 +849,7 @@ async function handleQuestions(selectInteraction, rootInteraction, settings, rol
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('q5')
-                    .setLabel('Question 5 (optional)')
+                    .setLabel('問題 5（選填）')
                     .setStyle(TextInputStyle.Short)
                     .setValue(currentQuestions[4] ?? '')
                     .setMaxLength(100)
@@ -874,7 +874,7 @@ async function handleQuestions(selectInteraction, rootInteraction, settings, rol
         .filter(Boolean);
 
     if (newQuestions.length === 0) {
-        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: 'At least one question is required.' });
+        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: '至少需要一個問題。' });
         return;
     }
 
@@ -892,8 +892,8 @@ async function handleQuestions(selectInteraction, rootInteraction, settings, rol
     await submitted.reply({
         embeds: [
             successEmbed(
-                '✅ Questions Updated',
-                `${newQuestions.length} question${newQuestions.length !== 1 ? 's' : ''} saved.`,
+                '✅ 問題已更新',
+                `已儲存 ${newQuestions.length} 個問題。`,
             ),
         ],
         flags: MessageFlags.Ephemeral,
@@ -905,23 +905,23 @@ async function handleQuestions(selectInteraction, rootInteraction, settings, rol
 async function handleRoleAdd(selectInteraction, rootInteraction, settings, roles, guildId, client) {
     const modal = new ModalBuilder()
         .setCustomId(`app_cfg_role_add_modal_${guildId}`)
-        .setTitle('Add Application Role');
+        .setTitle('新增申請角色');
 
     const roleSelect = new RoleSelectMenuBuilder()
         .setCustomId('application_role')
-        .setPlaceholder('Select the role members can apply for...')
+        .setPlaceholder('選擇會員可以申請的角色...')
         .setMinValues(1)
         .setMaxValues(1)
         .setRequired(true);
 
     const roleLabel = new LabelBuilder()
-        .setLabel('Application Role')
-        .setDescription('Select the Discord role members will be applying for')
+        .setLabel('申請角色')
+        .setDescription('選擇會員將要申請的 Discord 角色')
         .setRoleSelectMenuComponent(roleSelect);
 
     const nameInput = new TextInputBuilder()
         .setCustomId('role_name')
-        .setLabel('Display name (leave blank to use role name)')
+        .setLabel('顯示名稱（留空則使用角色名稱）')
         .setStyle(TextInputStyle.Short)
         .setMaxLength(50)
         .setRequired(false);
@@ -942,7 +942,7 @@ async function handleRoleAdd(selectInteraction, rootInteraction, settings, roles
         const customName = modalSubmission.fields.getTextInputValue('role_name').trim() || role?.name || roleId;
 
         if (roles.some(r => r.roleId === roleId)) {
-            await replyUserError(modalSubmission, { type: ErrorTypes.UNKNOWN, message: `${role ?? roleId} is already an application role.` });
+            await replyUserError(modalSubmission, { type: ErrorTypes.UNKNOWN, message: `${role ?? roleId} 已經是申請角色。` });
             return;
         }
 
@@ -953,17 +953,17 @@ async function handleRoleAdd(selectInteraction, rootInteraction, settings, roles
         });
 
         await modalSubmission.reply({
-            embeds: [successEmbed('Role Added', `${role ?? roleId} added as **${customName}**.`)],
+            embeds: [successEmbed('已新增角色', `已將 ${role ?? roleId} 新增為 **${customName}**。`)],
             flags: MessageFlags.Ephemeral,
         });
 
         await refreshDashboard(rootInteraction, settings, roles, guildId, client);
     } catch (error) {
         if (error.code === 'INTERACTION_TIMEOUT') return;
-        logger.error('Error in role add modal:', error);
+        logger.error('新增角色互動視窗發生錯誤：', error);
         await replyUserError(selectInteraction, {
             type: ErrorTypes.UNKNOWN,
-            message: 'An error occurred while adding the application role.',
+            message: '新增申請角色時發生錯誤。',
         });
     }
 }
@@ -972,25 +972,25 @@ async function handleRoleRemove(selectInteraction, rootInteraction, settings, ro
     if (roles.length === 0) {
         await replyUserError(selectInteraction, {
             type: ErrorTypes.USER_INPUT,
-            message: 'There are no application roles configured to remove.',
+            message: '沒有設定任何可移除的申請角色。',
         });
         return;
     }
 
     const modal = new ModalBuilder()
         .setCustomId(`app_cfg_role_remove_modal_${guildId}`)
-        .setTitle('Remove Application Role');
+        .setTitle('移除申請角色');
 
     const roleSelect = new RoleSelectMenuBuilder()
         .setCustomId('remove_role')
-        .setPlaceholder('Select the role to remove...')
+        .setPlaceholder('選擇要移除的角色...')
         .setMinValues(1)
         .setMaxValues(1)
         .setRequired(true);
 
     const roleLabel = new LabelBuilder()
-        .setLabel('Remove Application Role')
-        .setDescription('Select the role to remove from the applications list')
+        .setLabel('移除申請角色')
+        .setDescription('從申請列表中選擇要移除的角色')
         .setRoleSelectMenuComponent(roleSelect);
 
     modal.addLabelComponents(roleLabel);
@@ -1007,7 +1007,7 @@ async function handleRoleRemove(selectInteraction, rootInteraction, settings, ro
         const index = roles.findIndex(r => r.roleId === roleId);
 
         if (index === -1) {
-            await replyUserError(modalSubmission, { type: ErrorTypes.USER_INPUT, message: `<@&${roleId}> is not in the application roles list.` });
+            await replyUserError(modalSubmission, { type: ErrorTypes.USER_INPUT, message: `<@&${roleId}> 不在申請角色列表中。` });
             return;
         }
 
@@ -1015,17 +1015,17 @@ async function handleRoleRemove(selectInteraction, rootInteraction, settings, ro
         await saveApplicationRoles(client, guildId, roles);
 
         await modalSubmission.reply({
-            embeds: [successEmbed('Role Removed', `<@&${roleId}> has been removed from the application roles.`)],
+            embeds: [successEmbed('已移除角色', `<@&${roleId}> 已從申請角色中移除。`)],
             flags: MessageFlags.Ephemeral,
         });
 
         await refreshDashboard(rootInteraction, settings, roles, guildId, client);
     } catch (error) {
         if (error.code === 'INTERACTION_TIMEOUT') return;
-        logger.error('Error in role remove modal:', error);
+        logger.error('移除角色互動視窗發生錯誤：', error);
         await replyUserError(selectInteraction, {
             type: ErrorTypes.UNKNOWN,
-            message: 'An error occurred while removing the application role.',
+            message: '移除申請角色時發生錯誤。',
         });
     }
 }
@@ -1033,17 +1033,17 @@ async function handleRoleRemove(selectInteraction, rootInteraction, settings, ro
 async function handleRetention(selectInteraction, rootInteraction, settings, roles, guildId, client) {
     const modal = new ModalBuilder()
         .setCustomId('app_cfg_retention')
-        .setTitle('Application Retention Periods');
+        .setTitle('申請保留期限');
 
     const retentionInfo = new TextDisplayBuilder()
         .setContent(
-            '**Pending** — how long unanswered/in-progress applications are kept before being automatically removed.\n' +
-            '**Reviewed** — how long approved or denied applications are kept.\n' +
-            '-# Enter a whole number between 1 and 3650 (max 10 years).',
+            '**待審核** — 未回覆或處理中的申請在被自動移除前保留的時間。\n' +
+            '**已審核** — 已批准或拒絕的申請保留的時間。\n' +
+            '-# 請輸入介於 1 到 3650 之間的整數（最多 10 年）。',
         );
 
     const pendingLabel = new LabelBuilder()
-        .setLabel('Pending retention (days)')
+        .setLabel('待審核保留天數')
         .setTextInputComponent(
             new TextInputBuilder()
                 .setCustomId('pending_days')
@@ -1055,7 +1055,7 @@ async function handleRetention(selectInteraction, rootInteraction, settings, rol
         );
 
     const reviewedLabel = new LabelBuilder()
-        .setLabel('Reviewed retention (days)')
+        .setLabel('已審核保留天數')
         .setTextInputComponent(
             new TextInputBuilder()
                 .setCustomId('reviewed_days')
@@ -1086,12 +1086,12 @@ async function handleRetention(selectInteraction, rootInteraction, settings, rol
     const reviewedDays = parseInt(submitted.fields.getTextInputValue('reviewed_days').trim(), 10);
 
     if (isNaN(pendingDays) || pendingDays < 1 || pendingDays > 3650) {
-        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Pending retention must be a whole number between **1** and **3650** days.' });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: '待審核保留天數必須是介於 **1** 到 **3650** 之間的整數。' });
         return;
     }
 
     if (isNaN(reviewedDays) || reviewedDays < 1 || reviewedDays > 3650) {
-        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Reviewed retention must be a whole number between **1** and **3650** days.' });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: '已審核保留天數必須是介於 **1** 到 **3650** 之間的整數。' });
         return;
     }
 
@@ -1102,8 +1102,8 @@ async function handleRetention(selectInteraction, rootInteraction, settings, rol
     await submitted.reply({
         embeds: [
             successEmbed(
-                '✅ Retention Updated',
-                `Pending applications will be kept for **${pendingDays} days**.\nReviewed applications will be kept for **${reviewedDays} days**.`,
+                '✅ 保留期限已更新',
+                `待審核申請將保留 **${pendingDays} 天**。\n已審核申請將保留 **${reviewedDays} 天**。`,
             ),
         ],
         flags: MessageFlags.Ephemeral,
@@ -1117,7 +1117,7 @@ async function handleDeleteApplication(confirmSubmit, selectedRoleId, guildId, r
         
         const roleIndex = roles.findIndex(r => r.roleId === selectedRoleId);
         if (roleIndex === -1) {
-            await replyUserError(confirmSubmit, { type: ErrorTypes.USER_INPUT, message: 'Application role not found.' });
+            await replyUserError(confirmSubmit, { type: ErrorTypes.USER_INPUT, message: '找不到申請角色。' });
             return;
         }
 
@@ -1139,16 +1139,16 @@ async function handleDeleteApplication(confirmSubmit, selectedRoleId, guildId, r
         await confirmSubmit.reply({
             embeds: [
                 successEmbed(
-                    '🗑️ Application Deleted',
-                    `The application for <@&${selectedRoleId}> (**${deletedRole.name}**) has been permanently deleted.\n\n` +
-                    `Deleted: **${applicationsToDelete.length}** application${applicationsToDelete.length !== 1 ? 's' : ''}`,
+                    '🗑️ 申請已刪除',
+                    `<@&${selectedRoleId}>（**${deletedRole.name}**）的申請已被永久刪除。\n\n` +
+                    `已刪除：**${applicationsToDelete.length}** 個申請`,
                 ),
             ],
             flags: MessageFlags.Ephemeral,
         });
 
     } catch (error) {
-        logger.error('Error in handleDeleteApplication:', error);
-        await replyUserError(confirmSubmit, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while deleting the application. Please try again.' });
+        logger.error('handleDeleteApplication 發生錯誤：', error);
+        await replyUserError(confirmSubmit, { type: ErrorTypes.UNKNOWN, message: '刪除申請時發生錯誤，請再試一次。' });
     }
 }
