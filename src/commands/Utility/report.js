@@ -8,22 +8,22 @@ import reportSetchannel from './modules/report_setchannel.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('report')
-        .setDescription('Report a user to server staff, or configure where reports are sent.')
+        .setDescription('檢舉伺服器成員給工作人員，或設定接收檢舉的頻道。')
         .setDMPermission(false)
         .addSubcommand(subcommand =>
             subcommand
                 .setName('file')
-                .setDescription('Report a user to the server moderation team.')
+                .setDescription('檢舉伺服器管理團隊的成員。')
                 .addUserOption(option =>
                     option
                         .setName('user')
-                        .setDescription('The user you want to report.')
+                        .setDescription('你想檢舉的使用者。')
                         .setRequired(true),
                 )
                 .addStringOption(option =>
                     option
                         .setName('reason')
-                        .setDescription('The reason for the report (be detailed).')
+                        .setDescription('檢舉的原因 (請詳細說明)。')
                         .setRequired(true)
                         .setMaxLength(500),
                 ),
@@ -31,16 +31,16 @@ export default {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('setchannel')
-                .setDescription('Set the channel where user reports are sent. (Manage Server required)')
+                .setDescription('設定接收使用者檢舉的頻道。(需要管理伺服器權限)')
                 .addChannelOption(option =>
                     option
                         .setName('channel')
-                        .setDescription('The text channel to receive reports.')
+                        .setDescription('接收檢舉的文字頻道。')
                         .addChannelTypes(ChannelType.GuildText)
                         .setRequired(true),
                 ),
         ),
-    category: 'Utility',
+    category: '工具',
 
     async execute(interaction, config, client) {
         const subcommand = interaction.options.getSubcommand();
@@ -53,6 +53,6 @@ export default {
             return await reportSetchannel.execute(interaction, config, client);
         }
 
-        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Unknown subcommand.' });
+        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '未知的子指令。' });
     },
 };
