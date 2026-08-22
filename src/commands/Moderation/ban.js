@@ -7,28 +7,28 @@ import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 export default {
     data: new SlashCommandBuilder()
         .setName("ban")
-        .setDescription("Ban a user from the server")
+        .setDescription("將使用者從伺服器中封鎖 (Ban)")
         .addUserOption((option) =>
             option
                 .setName("target")
-                .setDescription("The user to ban")
+                .setDescription("要封鎖的使用者")
                 .setRequired(true),
         )
         .addStringOption((option) =>
-            option.setName("reason").setDescription("Reason for the ban"),
+            option.setName("reason").setDescription("封鎖原因"),
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
     category: "moderation",
 
     async execute(interaction, config, client) {
         const user = interaction.options.getUser("target");
-        const reason = interaction.options.getString("reason") || "No reason provided";
+        const reason = interaction.options.getString("reason") || "未提供原因";
 
         if (!user) {
             throw new TitanBotError(
                 'Missing target user',
                 ErrorTypes.USER_INPUT,
-                'You must specify a user to ban.',
+                '你必須指定要封鎖的使用者。',
                 { subtype: 'invalid_user' },
             );
         }
@@ -37,14 +37,14 @@ export default {
             throw new TitanBotError(
                 'Cannot ban self',
                 ErrorTypes.VALIDATION,
-                'You cannot ban yourself.',
+                '你不能封鎖自己。',
             );
         }
         if (user.id === client.user.id) {
             throw new TitanBotError(
                 'Cannot ban bot',
                 ErrorTypes.VALIDATION,
-                'You cannot ban the bot.',
+                '你不能封鎖機器人。',
             );
         }
 
@@ -58,8 +58,8 @@ export default {
         await InteractionHelper.universalReply(interaction, {
             embeds: [
                 successEmbed(
-                    `🚫 **Banned** ${user.tag}`,
-                    `**Reason:** ${reason}\n**Case ID:** #${result.caseId}`,
+                    `🚫 **已封鎖** ${user.tag}`,
+                    `**原因：** ${reason}\n**案件編號：** #${result.caseId}`,
                 ),
             ],
         });
