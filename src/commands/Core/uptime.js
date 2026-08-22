@@ -6,7 +6,7 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
     data: new SlashCommandBuilder()
     .setName("uptime")
-    .setDescription("Check how long the bot has been online"),
+    .setDescription("檢查機器人線上運行了多長時間"),
 
   async execute(interaction) {
     try {
@@ -20,24 +20,24 @@ export default {
       let minutes = Math.floor(totalSeconds / 60);
       let seconds = Math.floor(totalSeconds % 60);
 
-      const uptimeStr = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+      const uptimeStr = `${days}天 ${hours}小時 ${minutes}分鐘 ${seconds}秒`;
 
       await InteractionHelper.safeEditReply(interaction, {
         embeds: [createEmbed({ 
-          title: "System Uptime", 
+          title: "系統運行時間", 
           description: `\`\`\`${uptimeStr}\`\`\`` 
         })],
       });
     } catch (error) {
-      logger.error('Uptime command error:', error);
+      logger.error('Uptime 指令發生錯誤：', error);
       
       try {
         return await InteractionHelper.safeEditReply(interaction, {
-          embeds: [createEmbed({ title: 'System Error', description: 'Could not compute uptime.', color: 'error' })],
+          embeds: [createEmbed({ title: '系統錯誤', description: '無法計算運行時間。', color: 'error' })],
           flags: MessageFlags.Ephemeral,
         });
       } catch (replyError) {
-        logger.error('Failed to send error reply:', replyError);
+        logger.error('發送錯誤回覆失敗：', replyError);
       }
     }
   },
