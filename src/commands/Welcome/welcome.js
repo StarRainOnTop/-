@@ -9,35 +9,35 @@ import { ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('welcome')
-        .setDescription('Configure the welcome system')
+        .setDescription('設定歡迎訊息系統')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .addSubcommand(subcommand =>
             subcommand
                 .setName('setup')
-                .setDescription('Set up the welcome message')
+                .setDescription('設定歡迎訊息')
                 .addChannelOption(option =>
                     option.setName('channel')
-                        .setDescription('The channel to send welcome messages to')
+                        .setDescription('要發送歡迎訊息的頻道')
                         .addChannelTypes(ChannelType.GuildText)
                         .setRequired(true))
                 .addStringOption(option =>
                     option.setName('message')
-                        .setDescription('Welcome message. Variables: {user}, {username}, {server}, {memberCount}')
+                        .setDescription('歡迎訊息。變數：{user}, {username}, {server}, {memberCount}')
                         .setRequired(true))
                 .addStringOption(option =>
                     option.setName('image')
-                        .setDescription('URL of the image to include in the welcome message')
+                        .setDescription('要包含在歡迎訊息中的圖片網址')
                         .setRequired(false))
                 .addBooleanOption(option =>
                     option.setName('ping')
-                        .setDescription('Whether to ping the user in the welcome message')
+                        .setDescription('是否要在歡迎訊息中標註（ping）該用戶')
                         .setRequired(false))),
 
     async execute(interaction) {
         try {
             const deferSuccess = await InteractionHelper.safeDefer(interaction);
             if (!deferSuccess) {
-                logger.warn(`Welcome interaction defer failed`, {
+                logger.warn(`Welcome 互動延遲 (defer) 失敗`, {
                     userId: interaction.user.id,
                     guildId: interaction.guildId,
                     commandName: 'welcome'
@@ -45,14 +45,14 @@ export default {
                 return;
             }
         } catch (deferError) {
-            logger.error(`Welcome defer error`, { error: deferError.message });
+            logger.error(`Welcome defer 發生錯誤`, { error: deferError.message });
             return;
         }
 
         const { options, guild, client } = interaction;
 
         if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the **Manage Server** permission to use `/welcome`.' });
+            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: '你需要**管理伺服器 (Manage Server)** 權限才能使用 `/welcome`。' });
         }
 
         const subcommand = options.getSubcommand();
@@ -65,21 +65,21 @@ export default {
 
             const existingConfig = await getWelcomeConfig(client, guild.id);
             if (existingConfig?.channelId) {
-                logger.info(`[Welcome] Setup blocked because config already exists in channel ${existingConfig.channelId} for guild ${guild.id}`);
-                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `Welcome is already configured for <#${existingConfig.channelId}>. Use **/greet dashboard** to customize channel, message, ping, or image.` });
+                logger.info(`[Welcome] 伺服器 ${guild.id} 的頻道 ${existingConfig.channelId} 已經存在設定，故阻擋此次設定`);
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `歡迎訊息已經設定在 <#${existingConfig.channelId}>。請使用 **/greet dashboard** 來客製化頻道、訊息、標註或圖片。` });
             }
             
             if (!message || message.trim().length === 0) {
-                logger.warn(`[Welcome] Empty message provided by ${interaction.user.tag} in ${guild.name}`);
-                return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Welcome message cannot be empty' });
+                logger.warn(`[Welcome] 用戶 ${interaction.user.tag} 在 ${guild.name} 提供了空白的訊息`);
+                return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: '歡迎訊息不能為空' });
             }
 
             if (image) {
                 try {
                     new URL(image);
                 } catch (e) {
-                    logger.warn(`[Welcome] Invalid image URL provided by ${interaction.user.tag}: ${image}`);
-                    return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Please provide a valid image URL (must start with http:// or https://' });
+                    logger.warn(`[Welcome] 用戶 ${interaction.user.tag} 提供了無效的圖片網址：${image}`);
+                    return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: '請提供有效的圖片網址（必須以 http:// 或 https:// 開頭）' });
                 }
             }
 
@@ -92,7 +92,7 @@ export default {
                     welcomePing: ping
                 });
 
-                logger.info(`[Welcome] Setup configured by ${interaction.user.tag} for guild ${guild.name} (${guild.id})`);
+                logger.info(`[Welcome] 用戶 ${interaction.user.tag} 已為伺服器 ${guild.name} (${guild.id}) 完成設定`);
 
                 const previewMessage = formatWelcomeMessage(message, {
                     user: interaction.user,
@@ -101,14 +101,14 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor(getColor('success'))
-                    .setTitle('Welcome System Configured')
-                    .setDescription(`Welcome messages will now be sent to ${channel}`)
+                    .setTitle('已設定歡迎訊息系統')
+                    .setDescription(`歡迎訊息現在將會發送到 ${channel}`)
                     .addFields(
-                        { name: 'Message Preview', value: truncateForEmbedField(previewMessage) },
-                        { name: 'Ping User', value: ping ? 'Yes' : 'No' },
-                        { name: 'Status', value: 'Enabled' }
+                        { name: '訊息預覽', value: truncateForEmbedField(previewMessage) },
+                        { name: '標註用戶', value: ping ? '是' : '否' },
+                        { name: '狀態', value: '已啟用' }
                     )
-                    .setFooter({ text: 'Tip: Use /greet dashboard to customize welcome settings' });
+                    .setFooter({ text: '提示：使用 /greet dashboard 來進一步客製化歡迎訊息設定' });
 
                 if (image) {
                     embed.setImage(image);
@@ -116,8 +116,8 @@ export default {
 
                 await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
             } catch (error) {
-                logger.error(`[Welcome] Failed to setup welcome system for guild ${guild.id}:`, error);
-                await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while configuring the welcome system. Please try again.' });
+                logger.error(`[Welcome] 為伺服器 ${guild.id} 設定歡迎訊息系統失敗：`, error);
+                await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '設定歡迎訊息系統時發生錯誤，請稍後再試。' });
             }
         }
     },
